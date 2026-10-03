@@ -23,3 +23,4 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0008](0008-detekt-on-jdk21-daemon.md) | detekt は安定版 1.23.8 を使い、Gradle デーモンを JDK 21 に固定する | 採択 | 2026-10-03 |
 | [0009](0009-low-level-writer-as-creation-api.md) | ドキュメント作成には低レベル API（RemoteComposeWriter）を使う | 採択 | 2026-10-03 |
 | [0010](0010-restricted-api-isolation.md) | RestrictTo の Remote Compose API を使い、依存箇所を閉じ込める | 採択 | 2026-10-03 |
+| [0011](0011-album-regenerate-from-sim-state.md) | アルバムの正は成長データとし、.rc はライブラリ更新時に作り直す | 採択 | 2026-10-04 |
