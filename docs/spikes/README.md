@@ -4,7 +4,7 @@
 
 | # | 検証項目 | 状態 | 結果・メモ |
 | --- | --- | --- | --- |
-| ① | アプリ内再生（最小ドキュメントの生成 → 再生） | 未着手 | ADR-0009 の作成 API で実施 |
+| ① | アプリ内再生（最小ドキュメントの生成 → 再生） | **成功**（2026-10-03） | 下記「① 結果」参照 |
 | ② | 手元端末のランチャーでの次世代ウィジェット表示 | 事前確認のみ | 下記「② 事前確認」参照 |
 | ③ | 式でどこまでアニメーションが書けるか（揺れ・回転・開花の補間） | 未着手 | |
 | ④ | ドキュメントのファイル保存 → 再読込 | 未着手 | ソース上はバイト列単体で完結。ただし前方互換の保証はなく、未知 op で読込失敗する |
@@ -20,6 +20,21 @@
 - 既知の罠（同リポジトリの `STATUS.md` / `docs/MISSING_SUPPORT.md` より）:
   - 値が黙って 0 になる失敗が多い。シェーダーの指定が NaN になると、エラーを出さずにシェーダーなしで描かれる
   - `DrawTextOnCircle` は androidx の本家でも命令として登録されていないので使わない
+
+## ① 結果（2026-10-03）
+
+Sim（`simulate(ageDays)`）→ `WriterPlantDocumentCompiler`（`RemoteComposeWriter`、プロファイル `ANDROIDX`）→ `RemoteDocumentPlayer` の流れが Pixel 6a で通った。
+
+- ドキュメントは地面・茎・花の最小構成で **377 バイト**
+- 茎は `sin(CONTINUOUS_SEC * 2) * 5` 度で根元を支点に揺れ、プレイヤー側で時刻の式が評価されることを確認（③の入口）
+- 座標は `addComponentWidthValue()` / `addComponentHeightValue()` を使った相対値で書いた
+
+### 落とし穴: プレイヤーが 0x0 になる
+
+- `root` を持つドキュメントでは、`CoreDocument.getWidth()` / `getHeight()` がレイアウト前のルートの大きさ（0）を返す。そのまま `RemoteDocumentPlayer(documentWidth = document.width, ...)` に渡すと何も表示されない
+- さらに、作成側のサイズを `documentWidth` / `documentHeight` に渡しても、`ViewFactoryHolder` が 0x0 のままだった（ソース上は内部で `Modifier.size(documentWidth.dp, ...)` を付けているが、効いていない。原因は未特定）
+- 回避策: 呼び出し側の `modifier` に `Modifier.size(...)` を明示的に付ける（`PlantDocumentView.kt`）
+- 調べ方: `adb shell dumpsys activity top` で View 階層の大きさを見ると早い
 
 ## ② 事前確認（2026-10-03）
 

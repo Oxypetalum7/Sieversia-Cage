@@ -47,4 +47,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.remote.player.compose)
+    implementation(libs.remote.player.core)
 }
