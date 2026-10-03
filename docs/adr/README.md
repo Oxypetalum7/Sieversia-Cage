@@ -21,3 +21,5 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0006](0006-application-id.md) | applicationId とパッケージ名 | 廃止（ADR-0007 により） | 2026-10-03 |
 | [0007](0007-package-name-without-underscore.md) | パッケージ名からアンダースコアを外す | 採択 | 2026-10-03 |
 | [0008](0008-detekt-on-jdk21-daemon.md) | detekt は安定版 1.23.8 を使い、Gradle デーモンを JDK 21 に固定する | 採択 | 2026-10-03 |
+| [0009](0009-low-level-writer-as-creation-api.md) | ドキュメント作成には低レベル API（RemoteComposeWriter）を使う | 採択 | 2026-10-03 |
+| [0010](0010-restricted-api-isolation.md) | RestrictTo の Remote Compose API を使い、依存箇所を閉じ込める | 採択 | 2026-10-03 |
