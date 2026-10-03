@@ -20,6 +20,10 @@
 - 既知の罠（同リポジトリの `STATUS.md` / `docs/MISSING_SUPPORT.md` より）:
   - 値が黙って 0 になる失敗が多い。シェーダーの指定が NaN になると、エラーを出さずにシェーダーなしで描かれる
   - `DrawTextOnCircle` は androidx の本家でも命令として登録されていないので使わない
+- Inspector で確かめたこと（2026-10-04、`samples/spike1-day10.rc`）:
+  - 描画され、時刻の式によるアニメーションも動いた。Disassembly は端末の `toNestedString()` と一致（25 命令、377 バイト）
+  - 時刻のスライダーは DAG パネルの「Live Simulator」にある。名前は `$TIME` ではなく `CONTINUOUS_SEC`。動かすと茎の揺れが連動した
+  - 地面（`#6D5A4B`）が Inspector でだけ灰色っぽく見える。実機では茶色。Inspector のプレイヤーは独自の移植なので、色の最終判断は実機で行う
 
 ## ① 結果（2026-10-03）
 
