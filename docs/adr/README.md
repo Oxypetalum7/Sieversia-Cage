@@ -18,4 +18,6 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0003](0003-toolchain-and-dependency-versions.md) | ツールチェーンと依存バージョンの固定 | 採択 | 2026-10-03 |
 | [0004](0004-module-layout-feature-core.md) | モジュール命名を feature/core 規約に揃え、段階的に分割する | 採択 | 2026-10-03 |
 | [0005](0005-project-standards-adoption-timing.md) | 開発標準の導入タイミング | 採択 | 2026-10-03 |
-| [0006](0006-application-id.md) | applicationId とパッケージ名 | 採択 | 2026-10-03 |
+| [0006](0006-application-id.md) | applicationId とパッケージ名 | 廃止（ADR-0007 により） | 2026-10-03 |
+| [0007](0007-package-name-without-underscore.md) | パッケージ名からアンダースコアを外す | 採択 | 2026-10-03 |
+| [0008](0008-detekt-on-jdk21-daemon.md) | detekt は安定版 1.23.8 を使い、Gradle デーモンを JDK 21 に固定する | 採択 | 2026-10-03 |
