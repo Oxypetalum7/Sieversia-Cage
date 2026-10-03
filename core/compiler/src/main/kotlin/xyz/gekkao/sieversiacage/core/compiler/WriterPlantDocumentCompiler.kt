@@ -34,14 +34,10 @@ private const val STEM_WIDTH = 6f
 class WriterPlantDocumentCompiler(
     private val profile: Profile = RcPlatformProfiles.ANDROIDX,
 ) : PlantDocumentCompiler {
+    // obtain(w, h, contentDescription, profile) は説明文を捨てる（プロファイルのファクトリーが null を渡す）ため渡さない
     override fun compile(state: PlantState): ByteArray {
         val w =
-            RemoteComposeWriter.obtain(
-                PLANT_DOCUMENT_SIZE,
-                PLANT_DOCUMENT_SIZE,
-                "Sieversia Cage day ${state.ageDays}",
-                profile,
-            )
+            RemoteComposeWriter.obtain(PLANT_DOCUMENT_SIZE, PLANT_DOCUMENT_SIZE, profile)
         w.root {
             w.startCanvas(RecordingModifier().fillMaxSize().background(SKY))
             val width = w.addComponentWidthValue()

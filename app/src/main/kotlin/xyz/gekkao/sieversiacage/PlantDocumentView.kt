@@ -11,6 +11,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+/** ドキュメントの中身を1行1命令のテキストにする（デバッグ・スパイク④用）。 */
+fun dumpDocument(bytes: ByteArray): String = RemoteDocument(bytes).document.toNestedString()
+
 /** RemoteCompose ドキュメントのバイト列を再生する。
  *
  * レイアウトを持つドキュメントでは `CoreDocument.width` / `height` がレイアウト前に 0 を返すため、

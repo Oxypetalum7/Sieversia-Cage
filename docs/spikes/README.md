@@ -7,7 +7,7 @@
 | ① | アプリ内再生（最小ドキュメントの生成 → 再生） | **成功**（2026-10-03） | 下記「① 結果」参照 |
 | ② | 手元端末のランチャーでの次世代ウィジェット表示 | 事前確認のみ | 下記「② 事前確認」参照 |
 | ③ | 式でどこまでアニメーションが書けるか（揺れ・回転・開花の補間） | 未着手 | |
-| ④ | ドキュメントのファイル保存 → 再読込 | 未着手 | ソース上はバイト列単体で完結。ただし前方互換の保証はなく、未知 op で読込失敗する |
+| ④ | ドキュメントのファイル保存 → 再読込 | **成功**（2026-10-04） | 下記「④ 結果」参照 |
 | ⑤ | AGSL（シェーダー）をどこまで使えるか | 未着手 | 2026-10-03 追加。下記「⑤ 検証観点」参照 |
 
 進める順番: ① → ④ → ③ → ⑤ → ②（①〜④で作るドキュメントを⑤と②で使い回すため）
@@ -35,6 +35,23 @@ Sim（`simulate(ageDays)`）→ `WriterPlantDocumentCompiler`（`RemoteComposeWr
 - さらに、作成側のサイズを `documentWidth` / `documentHeight` に渡しても、`ViewFactoryHolder` が 0x0 のままだった（ソース上は内部で `Modifier.size(documentWidth.dp, ...)` を付けているが、効いていない。原因は未特定）
 - 回避策: 呼び出し側の `modifier` に `Modifier.size(...)` を明示的に付ける（`PlantDocumentView.kt`）
 - 調べ方: `adb shell dumpsys activity top` で View 階層の大きさを見ると早い
+
+## ④ 結果（2026-10-04）
+
+- 生成したバイト列を `files/album/day-N.rc` に保存し、読み直したものを再生した。11 日分すべてで元のバイト列と完全一致（`contentEquals`）
+- アプリを完全に終了（`am force-stop`）して再起動したあと、アルバムから Day 10 をファイルだけで再生できた
+- `RemoteDocument(bytes).document.toNestedString()` で命令を入れ子のまま出せる。式は RPN で記録される（例: 揺れは `FloatExpression[47] = ([1] 2.0 * sin 5.0 * )`、`[1]` は `CONTINUOUS_SEC`）。`toString()` はヘッダーとルートしか出さないので使わない
+- サンプル: `samples/spike1-day0.rc` / `samples/spike1-day10.rc`（377 バイト）。先頭は HEADER 命令と `0x048C0000 \| 1`
+
+### 落とし穴: ドキュメントの説明文が入らない
+
+- `RemoteComposeWriter.obtain(w, h, contentDescription, profile)` は説明文を捨てる。`RcPlatformProfiles` のファクトリーがすべて `null` を渡すため
+- 説明文を受け取るコンストラクタを直接呼ぶと、プロファイル専用の Writer（例: `WIDGETS_V6` の `WidgetsProfileWriterV6`）を経由しなくなる
+- ウィジェットのアクセシビリティは、本実装でコンポーネント単位の semantics で対応する
+
+### 本実装への申し送り
+
+- 前方互換の保証がない（未知の命令があると読込に失敗する）ため、アルバムには `.rc` と一緒に生成元の Sim 状態も保存し、ライブラリ更新後に作り直せるようにする（`:core:data`）
 
 ## ② 事前確認（2026-10-03）
 
