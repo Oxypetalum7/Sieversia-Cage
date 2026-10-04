@@ -72,8 +72,18 @@ private const val NEVER_TAPPED = -10_000f
 
 /** スパイク①③: 低レベル API（ADR-0009）でドキュメントを作る。③で式アニメーションとタップを足した。 */
 class WriterPlantDocumentCompiler(
-    private val profile: Profile = RcPlatformProfiles.ANDROIDX,
+    target: DocumentTarget = DocumentTarget.IN_APP,
 ) : PlantDocumentCompiler {
+    private val profile: Profile =
+        when (target) {
+            DocumentTarget.IN_APP -> RcPlatformProfiles.ANDROIDX
+            DocumentTarget.WIDGET_V6 -> RcPlatformProfiles.WIDGETS_V6
+            DocumentTarget.WIDGET_V7 -> RcPlatformProfiles.WIDGETS_V7
+        }
+
+    // WIDGETS_V7 は DATA_SHADER を書けない（書き込み時に例外）。V6 は書けるので、②で OS 側に外されるかを確かめるため残す
+    private val useShader = target != DocumentTarget.WIDGET_V7
+
     // obtain(w, h, contentDescription, profile) は説明文を捨てる（プロファイルのファクトリーが null を渡す）ため渡さない
     override fun compile(state: PlantState): ByteArray {
         val w =
@@ -91,7 +101,7 @@ class WriterPlantDocumentCompiler(
             val ground = w.floatExpression(height, GROUND_RATIO, MUL)
             val flowerY = w.floatExpression(height, FLOWER_RATIO, MUL)
 
-            drawSky(w, width, height)
+            drawSky(w, width, height, useShader)
             w.rcPaint
                 .setColor(SOIL)
                 .setStyle(PAINT_FILL)
@@ -176,7 +186,16 @@ private fun drawSky(
     w: RemoteComposeWriter,
     width: Float,
     height: Float,
+    useShader: Boolean,
 ) {
+    if (!useShader) {
+        w.rcPaint
+            .setColor(SKY)
+            .setStyle(PAINT_FILL)
+            .commit()
+        w.drawRect(0f, 0f, width, height)
+        return
+    }
     val phase = w.floatExpression(CONTINUOUS_SEC, SKY_SPEED, MUL)
     val shader =
         w

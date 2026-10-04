@@ -1,4 +1,6 @@
 <resources>
     <!-- 表示名は「Sieversia Cage」まで（発注書の表記ルール） -->
     <string name="app_name">Sieversia Cage</string>
+    <string name="widget_label">Sieversia Cage</string>
+    <string name="widget_unsupported">この端末ではまだ表示できません</string>
 </resources>

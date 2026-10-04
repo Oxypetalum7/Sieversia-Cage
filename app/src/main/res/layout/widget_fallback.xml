@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 36 未満（DrawInstructions がない）ときの代わり。スパイクでは文字だけ -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFE8F1F5"
+    android:gravity="center"
+    android:text="@string/widget_unsupported"
+    android:textColor="#FF4E7D3A" />
