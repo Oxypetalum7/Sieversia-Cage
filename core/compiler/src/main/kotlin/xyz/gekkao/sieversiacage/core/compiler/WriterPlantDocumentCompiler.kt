@@ -91,6 +91,7 @@ class WriterPlantDocumentCompiler(
             val ground = w.floatExpression(height, GROUND_RATIO, MUL)
             val flowerY = w.floatExpression(height, FLOWER_RATIO, MUL)
 
+            drawSky(w, width, height)
             w.rcPaint
                 .setColor(SOIL)
                 .setStyle(PAINT_FILL)
@@ -140,6 +141,57 @@ class WriterPlantDocumentCompiler(
         }
         return w.encodeToByteArray()
     }
+}
+
+/**
+ * スパイク⑤: 空を AGSL で描く。上が青く下が明るいグラデーションに、斜めの光の帯がゆっくり流れる。
+ * 位相は作成側の式で作って渡す（周期の調整をシェーダーに持ち込まない）。
+ */
+private val SKY_SHADER =
+    """
+    uniform float2 iResolution;
+    uniform float iPhase;
+
+    half4 main(float2 p) {
+        float2 uv = p / iResolution;
+        half3 top = half3(0.67, 0.81, 0.90);
+        half3 bottom = half3(0.95, 0.93, 0.86);
+        half3 c = mix(top, bottom, half(smoothstep(0.0, 0.8, uv.y)));
+        float band = 0.5 + 0.5 * sin(uv.x * 9.42 - uv.y * 3.0 + iPhase);
+        c += half3(0.06) * half(band * (1.0 - uv.y));
+        return half4(c, 1.0);
+    }
+    """.trimIndent()
+
+/**
+ * このコンパイラが書き込むシェーダーの一覧。プレイヤーは既定ですべてのシェーダーを拒否するため、
+ * 再生側はこの一覧と完全一致するものだけを許可する（ファイルを差し替えられても、知らないシェーダーは動かさない）。
+ */
+val PLANT_DOCUMENT_SHADERS: Set<String> = setOf(SKY_SHADER)
+
+/** 光の帯: 1時間に 180 周（20 秒で 1 周）。3600 秒で割り切れる。 */
+private const val SKY_SPEED = TWO_PI * 180 / HOUR_SEC
+
+private fun drawSky(
+    w: RemoteComposeWriter,
+    width: Float,
+    height: Float,
+) {
+    val phase = w.floatExpression(CONTINUOUS_SEC, SKY_SPEED, MUL)
+    val shader =
+        w
+            .createShader(SKY_SHADER)
+            .setFloatUniform("iResolution", width, height)
+            .setFloatUniform("iPhase", phase)
+            .commit()
+    // シェーダーが使えない環境（API 33 未満）では、この色の単色になる
+    w.rcPaint
+        .setColor(SKY)
+        .setStyle(PAINT_FILL)
+        .setShader(shader)
+        .commit()
+    w.drawRect(0f, 0f, width, height)
+    w.rcPaint.setShader(0).commit()
 }
 
 /** 花の部分を、花の中心を原点とし、基準サイズ（320）を単位とする座標で描く。 */
