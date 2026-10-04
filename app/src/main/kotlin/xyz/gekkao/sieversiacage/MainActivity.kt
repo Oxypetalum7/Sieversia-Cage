@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dagger.hilt.android.AndroidEntryPoint
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SIZE
 import xyz.gekkao.sieversiacage.core.compiler.WriterPlantDocumentCompiler
 import xyz.gekkao.sieversiacage.core.sim.simulate
@@ -36,6 +37,7 @@ import xyz.gekkao.sieversiacage.core.sim.simulate
 private const val TAG = "Spike4"
 private val compiler = WriterPlantDocumentCompiler()
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

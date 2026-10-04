@@ -15,6 +15,8 @@ ktlintGradle = "14.2.0"
 ktlint = "1.8.0"
 detekt = "1.23.8"
 composeRulesDetekt = "0.4.28"
+hilt = "2.60.1"
+ksp = "2.3.12"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -35,6 +37,9 @@ remote-player-compose = { module = "androidx.compose.remote:remote-player-compos
 remote-player-core = { module = "androidx.compose.remote:remote-player-core", version.ref = "remoteCompose" }
 remote-player-view = { module = "androidx.compose.remote:remote-player-view", version.ref = "remoteCompose" }
 remote-foundation = { module = "androidx.compose.remote.foundation:foundation", version.ref = "remoteComposeFoundation" }
+
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
@@ -57,9 +62,12 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 
 # build-logic の convention plugin（ADR-0017）
 sieversia-jvm-library = { id = "sieversia.jvm.library" }
 sieversia-android-library = { id = "sieversia.android.library" }
 sieversia-android-application = { id = "sieversia.android.application" }
 sieversia-android-compose = { id = "sieversia.android.compose" }
+sieversia-android-hilt = { id = "sieversia.android.hilt" }

@@ -34,5 +34,9 @@ gradlePlugin {
             id = "sieversia.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
         }
+        register("androidHilt") {
+            id = "sieversia.android.hilt"
+            implementationClass = "AndroidHiltConventionPlugin"
+        }
     }
 }

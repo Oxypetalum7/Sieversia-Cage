@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.sieversia.android.application)
     alias(libs.plugins.sieversia.android.compose)
+    alias(libs.plugins.sieversia.android.hilt)
 }
 
 android {
