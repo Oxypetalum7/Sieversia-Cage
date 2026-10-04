@@ -8,3 +8,6 @@ build/
 /captures
 .externalNativeBuild
 .cxx
+
+# 開発発注書はローカルにだけ置く（個人名を含むため公開しない）
+/docs/brief.md
