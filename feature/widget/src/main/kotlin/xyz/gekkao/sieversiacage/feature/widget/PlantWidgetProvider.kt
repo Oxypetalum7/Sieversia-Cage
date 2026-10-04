@@ -1,4 +1,4 @@
-package xyz.gekkao.sieversiacage
+package xyz.gekkao.sieversiacage.feature.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider

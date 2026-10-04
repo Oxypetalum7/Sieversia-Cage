@@ -1,0 +1,4 @@
+<resources>
+    <string name="widget_label">Sieversia Cage</string>
+    <string name="widget_unsupported">この端末ではまだ表示できません</string>
+</resources>

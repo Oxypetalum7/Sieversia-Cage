@@ -42,8 +42,8 @@ internal fun Project.configureLint() {
     extensions.configure<DetektExtension> {
         buildUponDefaultConfig = true
         config.setFrom(rootProject.files("config/detekt/detekt.yml"))
-        // ADR-0005: スパイク中は警告止まり。feature 切り出し時に false へ
-        ignoreFailures = true
+        // ADR-0005 / ADR-0016: feature の切り出しから、違反でビルドを落とす
+        ignoreFailures = false
     }
     dependencies {
         add("detektPlugins", libs.findLibrary("compose-rules-detekt").get())

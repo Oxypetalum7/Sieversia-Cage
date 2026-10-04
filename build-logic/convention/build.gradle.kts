@@ -38,5 +38,9 @@ gradlePlugin {
             id = "sieversia.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
         }
+        register("androidFeature") {
+            id = "sieversia.android.feature"
+            implementationClass = "AndroidFeatureConventionPlugin"
+        }
     }
 }
