@@ -13,6 +13,7 @@ Remote Compose は alpha なので、版上げは意識的なタスクとして�
 
 - [ ] ADR を起こす（何から何へ上げるか、理由、確認結果）
 - [ ] `gradle/libs.versions.toml` の `remoteCompose` / `remoteComposeFoundation` を更新する
+- [ ] `minCompileSdk` などが上がっていたら、SDK・Java の版を `build-logic/convention/src/main/kotlin/ProjectConventions.kt` で上げる（各モジュールには書かない。ADR-0017）
 
 ## 3. RestrictTo の依存箇所を直す（ADR-0010）
 
