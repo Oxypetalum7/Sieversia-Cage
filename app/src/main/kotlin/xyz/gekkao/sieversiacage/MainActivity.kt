@@ -62,6 +62,8 @@ private fun SpikeScreen(modifier: Modifier = Modifier) {
     // null = 今日（ageDays）を生成して保存する。数値 = アルバムからその日を再生する
     var albumDay by rememberSaveable { mutableStateOf<Int?>(null) }
     var savedDays by remember { mutableStateOf(store.savedDays()) }
+    // 同じ日を上書きしても savedDays は変わらないため、保存のたびに進めて読み直させる
+    var saveCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(ageDays) {
         val generated = compiler.compile(simulate(ageDays))
@@ -69,10 +71,14 @@ private fun SpikeScreen(modifier: Modifier = Modifier) {
         val reloaded = store.load(ageDays)
         Log.i(TAG, "saved ${file.name} ${generated.size}B, roundTrip=${reloaded?.contentEquals(generated)}")
         savedDays = store.savedDays()
+        saveCount++
     }
 
     val playingDay = albumDay ?: ageDays
-    val bytes = store.load(playingDay).takeIf { playingDay in savedDays }
+    val bytes =
+        remember(playingDay, savedDays, saveCount) {
+            store.load(playingDay).takeIf { playingDay in savedDays }
+        }
 
     Column(
         modifier = modifier,
