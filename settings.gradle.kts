@@ -24,3 +24,5 @@ rootProject.name = "SieversiaCage"
 include(":app")
 include(":core:sim")
 include(":core:compiler")
+include(":core:player")
+include(":core:data")

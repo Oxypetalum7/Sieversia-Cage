@@ -1,6 +1,6 @@
-@file:SuppressLint("RestrictedApi") // ADR-0010: 再生側の RestrictTo はこのファイルに閉じ込める
+@file:SuppressLint("RestrictedApi") // ADR-0010: 再生側の RestrictTo はこのモジュールに閉じ込める
 
-package xyz.gekkao.sieversiacage
+package xyz.gekkao.sieversiacage.core.player
 
 import android.annotation.SuppressLint
 import android.os.Build
@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SHADERS
 
 /** アプリ内再生での平均フレームレートの上限。瞬間の上限（既定 60fps）と同じにして、間引きを実質なくす。 */
 private const val IN_APP_MAX_AVG_FPS = 60
@@ -23,12 +22,16 @@ fun dumpDocument(bytes: ByteArray): String = RemoteDocument(bytes).document.toNe
  *
  * レイアウトを持つドキュメントでは `CoreDocument.width` / `height` がレイアウト前に 0 を返すため、
  * サイズは作成側が決めた値を受け取る。
+ *
+ * @param allowedShaders 再生を許可するシェーダーの文字列。作成側が書き込んだものと完全一致したものだけ動かす。
+ *   再生側が作成側（:core:compiler）に依存しないよう、呼び出し側から受け取る
  */
 @Composable
 fun PlantDocumentView(
     bytes: ByteArray,
     widthDp: Int,
     heightDp: Int,
+    allowedShaders: Set<String>,
     modifier: Modifier = Modifier,
     maxAvgFps: Int = IN_APP_MAX_AVG_FPS,
 ) {
@@ -43,7 +46,7 @@ fun PlantDocumentView(
         // プレイヤーは API を確かめずに RuntimeShader（API 33〜）を作るので、33 未満では許可しない（paint の単色で描かれる）
         init = { player ->
             player.setShaderControl { source ->
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && source in PLANT_DOCUMENT_SHADERS
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && source in allowedShaders
             }
         },
         // 既定では直近 10 秒の平均が 10fps に制限され、操作がないと数秒でカクつく。

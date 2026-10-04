@@ -27,25 +27,33 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dagger.hilt.android.AndroidEntryPoint
-import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SIZE
-import xyz.gekkao.sieversiacage.core.compiler.WriterPlantDocumentCompiler
-import xyz.gekkao.sieversiacage.core.sim.simulate
+import xyz.gekkao.sieversiacage.core.data.AlbumStore
+import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
+import xyz.gekkao.sieversiacage.core.player.PlantDocumentView
+import xyz.gekkao.sieversiacage.core.player.dumpDocument
+import javax.inject.Inject
 
 private const val TAG = "Spike4"
-private val compiler = WriterPlantDocumentCompiler()
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var documents: PlantDocumentRepository
+
+    @Inject lateinit var store: AlbumStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 Scaffold { innerPadding ->
-                    SpikeScreen(modifier = Modifier.fillMaxSize().padding(innerPadding))
+                    SpikeScreen(
+                        documents = documents,
+                        store = store,
+                        modifier = Modifier.fillMaxSize().padding(innerPadding),
+                    )
                 }
             }
         }
@@ -57,9 +65,11 @@ class MainActivity : ComponentActivity() {
  * 再生するのは常に「ファイルから読み直したバイト列」。
  */
 @Composable
-private fun SpikeScreen(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val store = remember { SpikeAlbumStore(context.filesDir) }
+private fun SpikeScreen(
+    documents: PlantDocumentRepository,
+    store: AlbumStore,
+    modifier: Modifier = Modifier,
+) {
     var ageDays by rememberSaveable { mutableIntStateOf(0) }
     // null = 今日（ageDays）を生成して保存する。数値 = アルバムからその日を再生する
     var albumDay by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -68,7 +78,7 @@ private fun SpikeScreen(modifier: Modifier = Modifier) {
     var saveCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(ageDays) {
-        val generated = compiler.compile(simulate(ageDays))
+        val generated = documents.inAppDocument(ageDays)
         val file = store.save(ageDays, generated)
         val reloaded = store.load(ageDays)
         Log.i(TAG, "saved ${file.name} ${generated.size}B, roundTrip=${reloaded?.contentEquals(generated)}")
@@ -88,7 +98,12 @@ private fun SpikeScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         if (bytes != null) {
-            PlantDocumentView(bytes = bytes, widthDp = PLANT_DOCUMENT_SIZE, heightDp = PLANT_DOCUMENT_SIZE)
+            PlantDocumentView(
+                bytes = bytes,
+                widthDp = documents.documentSizeDp,
+                heightDp = documents.documentSizeDp,
+                allowedShaders = documents.allowedShaders,
+            )
             val source = if (albumDay == null) "今日（生成→保存→読込）" else "アルバム（ファイルから読込）"
             Text(text = "Day $playingDay: $source / ${bytes.size} bytes")
             TextButton(onClick = { Log.i(TAG, "dump day-$playingDay.rc\n" + dumpDocument(bytes)) }) {

@@ -21,13 +21,10 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:compiler"))
+    implementation(project(":core:data"))
+    implementation(project(":core:player"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-
-    implementation(libs.remote.player.compose)
-    implementation(libs.remote.player.core)
-    implementation(libs.remote.player.view)
 }

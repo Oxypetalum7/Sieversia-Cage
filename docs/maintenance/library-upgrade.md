@@ -18,7 +18,7 @@ Remote Compose は alpha なので、版上げは意識的なタスクとして�
 ## 3. RestrictTo の依存箇所を直す（ADR-0010）
 
 - [ ] 作成側: `:core:compiler`（`WriterPlantDocumentCompiler` など）
-- [ ] 再生側: プレイヤーを包むコード（スパイク中は `:app` の `PlantDocumentView.kt`、feature 切り出し後は専用モジュール）
+- [ ] 再生側: `:core:player`（`PlantDocumentView.kt`。ADR-0016）
 - [ ] 上記以外に `RestrictedApi` の抑止が増えていないことを確認する（`grep -rn 'RestrictedApi'`）
 
 ## 4. 回帰を確認する
