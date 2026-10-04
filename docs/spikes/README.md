@@ -87,6 +87,16 @@ Sim（`simulate(ageDays)`）→ `WriterPlantDocumentCompiler`（`RemoteComposeWr
 - 花の部分は `scale(width / 320)` をかけてから、基準サイズの座標で描いた。茎の太さ（`StrokeWidth(6.0)`）はピクセルのままなので、本実装では線の太さも同じ単位にそろえる
 - `rotate(angle)`（中心なし）はダンプ上 `MatrixRotate [52] NaN NaN` になるが、原点まわりに回った
 
+### 落とし穴: 操作がないと平均 10fps に間引かれる
+
+- 症状: 起動直後とタップ直後は滑らかだが、放っておくと数秒でカクつく
+- 原因: プレイヤー（`RemoteComposeView` の `Limiter`）は、瞬間の上限 60fps に加えて「直近 10 秒の平均 10fps」を上限にしている（`Limits.DEFAULT_MAX_AVG_FPS = 10` / `DEFAULT_WINDOW_SEC = 10`）。10 秒で 100 フレームを使い切ると間引かれる。タッチすると `touchBoost()` で履歴が消え、また滑らかになる
+- 計測（`adb shell dumpsys gfxinfo`、起動から 15 秒放置したあとの 10 秒間）: 修正前 102 フレーム（≈10fps）→ 修正後 604 フレーム（≈60fps）。どちらも Janky frames は 0%。処理が重いのではなく、意図的な間引き
+- 対処: `RemoteDocumentPlayer` の `update` で `setMaxAvgFps(60)` を呼ぶ（`PlantDocumentView.kt`）。`setDocument` のたびに既定値へ戻るため、`init` では効かない。`update` は `setDocument` の後に呼ばれる
+- `RemoteComposePlayer`（View 版）のクラスを参照するため、`remote-player-view` を `:app` の依存に足した
+- ヘッダーの `DOC_DESIRED_FPS` は瞬間の上限しか変えず、平均の上限はドキュメント側からは変えられない
+- **②への申し送り**: ホーム画面のウィジェットは OS 内蔵のプレイヤーが再生するので、アプリからこの上限を変えられない。同じ間引きがあるなら、ウィジェットでの常時アニメーションは 10fps 前後になる前提で、ゆっくりした動きにする。②で実測する
+
 ### 落とし穴（スパイクのコード）: 同じ日を上書きしても再描画されない
 
 - 保存済みの日の一覧（`savedDays`）が変わらないと再コンポーズが起きず、画面には古いファイルの内容が残っていた。保存のたびに数を進め、`remember` のキーにして読み直すようにした（`MainActivity.kt`）

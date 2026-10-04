@@ -48,4 +48,5 @@ dependencies {
 
     implementation(libs.remote.player.compose)
     implementation(libs.remote.player.core)
+    implementation(libs.remote.player.view)
 }

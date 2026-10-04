@@ -33,6 +33,7 @@ remote-creation-android = { module = "androidx.compose.remote:remote-creation-an
 remote-creation-compose = { module = "androidx.compose.remote:remote-creation-compose", version.ref = "remoteCompose" }
 remote-player-compose = { module = "androidx.compose.remote:remote-player-compose", version.ref = "remoteCompose" }
 remote-player-core = { module = "androidx.compose.remote:remote-player-core", version.ref = "remoteCompose" }
+remote-player-view = { module = "androidx.compose.remote:remote-player-view", version.ref = "remoteCompose" }
 remote-foundation = { module = "androidx.compose.remote.foundation:foundation", version.ref = "remoteComposeFoundation" }
 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
