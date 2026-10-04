@@ -114,10 +114,11 @@ Pixel 6a（Android 16 / API 36、`CP1A.260405.005`、Pixel Launcher）で `Remot
 
 ## ⑤ 結果（2026-10-04）
 
-空を AGSL で描いた（上が青く下が明るいグラデーションに、斜めの光の帯が 20 秒周期で流れる）。サンプル: `samples/spike5-day0.rc`。
+空を AGSL で描いた（上が青く下が明るいグラデーションに、斜めの細い光の帯が 10 秒周期で右へ流れる）。サンプル: `samples/spike5-day0.rc`。
 
-- 作成側: `w.createShader(src).setFloatUniform(...).commit()` で ID を得て、`rcPaint.setShader(id)` で使う。uniform には式（NaN の変数）を渡せる。位相は作成側の式（`CONTINUOUS_SEC * 2π·180/3600`）で作って渡し、毎正時の継ぎ目の調整をシェーダーに持ち込まない
+- 作成側: `w.createShader(src).setFloatUniform(...).commit()` で ID を得て、`rcPaint.setShader(id)` で使う。uniform には式（NaN の変数）を渡せる。位相は作成側の式（`CONTINUOUS_SEC * 2π·360/3600`）で作って渡し、毎正時の継ぎ目の調整をシェーダーに持ち込まない
 - 描いたあとは `rcPaint.setShader(0)` で外す（プレイヤーは 0 で `setShader(null)` にする）
+- 最初は帯を `0.06 × (0.5 + 0.5 sin)` の明るさで 20 秒周期にしたが、実機で見て帯がわからなかった（同じ 1 点の RGB が 20 秒かけて 13 段階ほど変わるだけ）。`pow(..., 6)` で細い筋にし、明るさを 0.25、周期を 10 秒にしてはっきり見えるようにした。見た目の作り込みは本実装で行う
 - 負荷（起動から 15 秒放置後の 10 秒間、`dumpsys gfxinfo`）: 604 フレーム、Janky 0%、99 パーセンタイル 13ms。プレイヤーは paint を適用するたびに `new RuntimeShader(...)` を作っているが、この規模では問題にならなかった
 
 ### 落とし穴: プレイヤーは既定ですべてのシェーダーを拒否する
@@ -125,6 +126,7 @@ Pixel 6a（Android 16 / API 36、`CP1A.260405.005`、Pixel Launcher）で `Remot
 - 症状: ドキュメントには `SHADER DATA` も `Shader(51)` も入っているのに、空が単色のまま。エラーもログも出ない
 - 原因: `RemoteComposePlayer`（View 版）の `ShaderControl` の既定値が `(shader) -> false`。`setDocument` の中の `checkShaders` で、許可されなかったシェーダーは無効になる（`ShaderData.mShaderValid = false` のまま読み込まれない）
 - 対処: `RemoteDocumentPlayer` の `init` で `setShaderControl` を設定する（`checkShaders` は `setDocument` の中で走るので、`update` では遅い）。許可するのは、コンパイラが書き込むシェーダー（`PLANT_DOCUMENT_SHADERS`）と文字列が完全に一致するものだけにした。アルバムのファイルが差し替えられても、知らないシェーダーは動かさない
+- 完全一致なので、シェーダーを書き換えると、それより前に保存したアルバムの日は空が単色になる（古いシェーダーが拒否される）。アルバムを成長データから作り直す前提（ADR-0011）と合わせて、シェーダーの変更もライブラリ更新と同じく「作り直しの理由」として扱う
 - さらに API 33 未満では許可しない。プレイヤーの `AndroidPaintContext.setShader` は API を確かめずに `RuntimeShader`（API 33〜）を作るため、許可するとクラッシュするおそれがある。許可しなければ paint の色（`SKY`）の単色で描かれる。この見た目は、許可を入れる前の実機で確認済み
 
 ### ウィジェット用プロファイル

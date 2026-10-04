@@ -144,7 +144,7 @@ class WriterPlantDocumentCompiler(
 }
 
 /**
- * スパイク⑤: 空を AGSL で描く。上が青く下が明るいグラデーションに、斜めの光の帯がゆっくり流れる。
+ * スパイク⑤: 空を AGSL で描く。上が青く下が明るいグラデーションに、斜めの細い光の帯が右へ流れる。
  * 位相は作成側の式で作って渡す（周期の調整をシェーダーに持ち込まない）。
  */
 private val SKY_SHADER =
@@ -157,8 +157,8 @@ private val SKY_SHADER =
         half3 top = half3(0.67, 0.81, 0.90);
         half3 bottom = half3(0.95, 0.93, 0.86);
         half3 c = mix(top, bottom, half(smoothstep(0.0, 0.8, uv.y)));
-        float band = 0.5 + 0.5 * sin(uv.x * 9.42 - uv.y * 3.0 + iPhase);
-        c += half3(0.06) * half(band * (1.0 - uv.y));
+        float band = pow(0.5 + 0.5 * sin(uv.x * 9.42 - uv.y * 3.0 - iPhase), 6.0);
+        c += half3(0.25) * half(band * (1.0 - uv.y));
         return half4(c, 1.0);
     }
     """.trimIndent()
@@ -169,8 +169,8 @@ private val SKY_SHADER =
  */
 val PLANT_DOCUMENT_SHADERS: Set<String> = setOf(SKY_SHADER)
 
-/** 光の帯: 1時間に 180 周（20 秒で 1 周）。3600 秒で割り切れる。 */
-private const val SKY_SPEED = TWO_PI * 180 / HOUR_SEC
+/** 光の帯: 1時間に 360 周（10 秒で 1 周）。3600 秒で割り切れる。 */
+private const val SKY_SPEED = TWO_PI * 360 / HOUR_SEC
 
 private fun drawSky(
     w: RemoteComposeWriter,
