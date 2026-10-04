@@ -17,7 +17,7 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0002](0002-spike-in-main-repo-with-modules.md) | スパイクを本リポジトリ内でモジュール分割して行う | 採択 | 2026-10-03 |
 | [0003](0003-toolchain-and-dependency-versions.md) | ツールチェーンと依存バージョンの固定 | 採択 | 2026-10-03 |
 | [0004](0004-module-layout-feature-core.md) | モジュール命名を feature/core 規約に揃え、段階的に分割する | 採択 | 2026-10-03 |
-| [0005](0005-project-standards-adoption-timing.md) | 開発標準の導入タイミング | 採択 | 2026-10-03 |
+| [0005](0005-project-standards-adoption-timing.md) | 開発標準の導入タイミング | 採択（DI の行は ADR-0015 により変更） | 2026-10-03 |
 | [0006](0006-application-id.md) | applicationId とパッケージ名 | 廃止（ADR-0007 により） | 2026-10-03 |
 | [0007](0007-package-name-without-underscore.md) | パッケージ名からアンダースコアを外す | 採択 | 2026-10-03 |
 | [0008](0008-detekt-on-jdk21-daemon.md) | detekt は安定版 1.23.8 を使い、Gradle デーモンを JDK 21 に固定する | 採択 | 2026-10-03 |
@@ -27,3 +27,6 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0012](0012-widget-profile-v6.md) | ウィジェットのドキュメントは WIDGETS_V6 で書き、シェーダーを使わない | 採択 | 2026-10-04 |
 | [0013](0013-implementation-milestones.md) | 本実装は「細い一本を先に通す」順で、M1〜M4 に分けて進める | 採択 | 2026-10-04 |
 | [0014](0014-watering-edge-reaction-and-recording.md) | 水やりの反応はドキュメント内で即座に返し、回数の記録は後追いでアプリに届ける | 採択 | 2026-10-04 |
+| [0015](0015-android-only-with-hilt.md) | アプリは Android 専用とし、DI には Hilt を使う | 採択 | 2026-10-04 |
+| [0016](0016-module-layout-after-spike.md) | スパイク後のモジュール構成（feature の切り出し） | 採択 | 2026-10-04 |
+| [0017](0017-build-logic-convention-plugins.md) | ビルドの共通設定を build-logic の convention plugin にまとめる | 採択 | 2026-10-04 |
