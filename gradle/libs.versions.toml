@@ -43,6 +43,13 @@ kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.
 
 compose-rules-detekt = { module = "io.nlopez.compose.rules:detekt", version.ref = "composeRulesDetekt" }
 
+# build-logic（convention plugin）がコンパイル時に参照する Gradle プラグイン本体
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-compiler-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+ktlint-gradle-plugin = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "ktlintGradle" }
+detekt-gradle-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
@@ -50,3 +57,9 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+
+# build-logic の convention plugin（ADR-0017）
+sieversia-jvm-library = { id = "sieversia.jvm.library" }
+sieversia-android-library = { id = "sieversia.android.library" }
+sieversia-android-application = { id = "sieversia.android.application" }
+sieversia-android-compose = { id = "sieversia.android.compose" }
