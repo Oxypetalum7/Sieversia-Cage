@@ -142,6 +142,38 @@ Pixel 6a（Android 16 / API 36、`CP1A.260405.005`、Pixel Launcher）で `Remot
 - ただし、書けても動くとは限らない。SDK 同梱の android-36 ソースでは、OS 内蔵プレイヤーの `ShaderControl` も既定で `false`（「The default is to not accept shaders」）で、`setShaderControl` を呼んでいる箇所がない。ウィジェットではシェーダーが外され、paint の単色になる見込み
 - **②への申し送り**: ウィジェットの見た目はシェーダーなしで成立させる（paint の色を、シェーダーがないときの見た目として選ぶ）。実機の内蔵プレイヤー（API レベル 8）で本当に外されるかは②で確かめる
 
+### WIDGETS_V6 と WIDGETS_V7 の違い（alpha20 のソースより、2026-10-04）
+
+| | `WIDGETS_V6` | `WIDGETS_V7` |
+| --- | --- | --- |
+| API レベル | 6 | 7 |
+| プロファイルのフラグ | `0`（プロファイルの考え方がまだない） | `PROFILE_WIDGETS` |
+| Writer | `WidgetsProfileWriterV6`（専用） | `RemoteComposeWriterAndroid`（`ANDROIDX` と同じ） |
+| 位置づけ | ソースのコメントは「Profile for Glance Widgets for Platform 16」（Android 16 / Baklava） | V7 以降の、命令セットをプロファイルで分ける方式 |
+| ヘッダー | `v1.0.0` の古い形式（⑤のプローブで確認） | （⑤では `DATA_SHADER` の例外で書き込みまで進まなかった） |
+| 再生できるプレイヤー | API レベル 6 以上 | API レベル 7 以上 |
+
+命令セットの組み立て方（`Operations.java`）:
+
+- V6: 基本の命令セット（`fillDefaultVersionMap`）に `DATA_SHADER` と `ROOT_CONTENT_BEHAVIOR` を足しただけ
+- V7 以降: 基本の命令セット + プロファイルごとの追加分 + V7 共通の命令（`REM`、`MATRIX_EXPRESSION` などの行列演算）
+  - `PROFILE_WIDGETS` の追加分（17 個）: `MATRIX_FROM_PATH`、ビットマップフォントの文字描画、`DRAW_TO_BITMAP`、`WAKE_IN`、`ID_LOOKUP`、`PATH_EXPRESSION`、動的な数値リスト、`CORE_TEXT` / `TEXT_STYLE` / `TEXT_TRANSFORM`、`COLOR_THEME` など
+  - `DATA_SHADER` は基本の命令セットにもウィジェット用の追加分にもなく、`ANDROIDX` 用の追加分にだけある。V6 にあったシェーダーが、V7 ではアプリ内プレイヤー専用に移された形
+  - `ROOT_CONTENT_BEHAVIOR` は、ウィジェット用では「非推奨」の追加分に移った
+  - 複数のプロファイルを指定すると、すべてに共通する命令だけが使える（どのプレイヤーでも動くことを保証するため）
+
+`WidgetsProfileWriterV6` が書き込み時に追加で制限していること:
+
+- 式の演算子を API レベル 6 のもの（`OFFSET + 50` 未満）に制限する。`floatExpression` のたびに `validateOps` で検証し、範囲外なら例外。V7 で増えた演算子（`SMOOTH_STEP`、`FRACT`、`PINGPONG`、`CUBIC`、`LOG2`、レジスタ操作、配列の集計など）は使えない
+- カスタムフォントを追加できない。画像の透明度と文字の大きさに式（NaN）を使えない
+- `createWriter` 経由のときだけ、ルートを枠いっぱいに拡大縮小する `RootContentBehavior` を入れる（`obtain` 経由では入らない）
+
+今のドキュメント（①③⑤）との関係:
+
+- ⑤のプローブで V6 の書き込みが通ったので、今の式（sin・cos・clamp など）はすべて API レベル 6 の範囲に収まっている
+- シェーダーは V6 なら書けるが、OS 内蔵プレイヤーが既定で拒否する見込み（上記）なので、どちらのプロファイルを選んでもウィジェットでは使わない
+- まだ確かめていないこと: レベル 8 の内蔵プレイヤーが V6 のドキュメントを再生できるか（新しいプレイヤーが古いドキュメントを読めるか）。②で両方のプロファイルを試す
+
 ## ⑤ 検証観点
 
 - 作成側: 低レベル API（`RemoteComposeShader` / `RcShaderScope`）でシェーダーを書けるか。uniform に時刻の式を渡してアニメーションさせられるか
