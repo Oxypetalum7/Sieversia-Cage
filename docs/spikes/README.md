@@ -96,6 +96,9 @@ Sim（`simulate(ageDays)`）→ `WriterPlantDocumentCompiler`（`RemoteComposeWr
 - `RemoteComposePlayer`（View 版）のクラスを参照するため、`remote-player-view` を `:app` の依存に足した
 - ヘッダーの `DOC_DESIRED_FPS` は瞬間の上限しか変えず、平均の上限はドキュメント側からは変えられない
 - **②への申し送り**: ホーム画面のウィジェットは OS 内蔵のプレイヤーが再生するので、アプリからこの上限を変えられない。同じ間引きがあるなら、ウィジェットでの常時アニメーションは 10fps 前後になる前提で、ゆっくりした動きにする。②で実測する
+  - SDK 同梱の android-36 ソース（rev 1、内蔵プレイヤーは API レベル 4）の `RemoteComposeCanvas` には瞬間の上限（60fps）しかなく、平均の上限（`Limiter`）はない
+  - ただし実機の内蔵プレイヤーは alpha20 と同世代（API レベル 8）なので、`Limiter` が入っている可能性がある。ランチャー側で間引いている可能性もある
+  - 測り方: ウィジェットを置いて放置し、ランチャーのプロセスに `adb shell dumpsys gfxinfo <ランチャーのパッケージ>` を使う
 
 ### 落とし穴（スパイクのコード）: 同じ日を上書きしても再描画されない
 
