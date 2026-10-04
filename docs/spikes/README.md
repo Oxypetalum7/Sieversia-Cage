@@ -8,7 +8,7 @@
 | ② | 手元端末のランチャーでの次世代ウィジェット表示 | 事前確認のみ | 下記「② 事前確認」参照 |
 | ③ | 式でどこまでアニメーションが書けるか（揺れ・回転・開花の補間・水やりタップ） | **成功**（2026-10-04） | 下記「③ 結果」参照 |
 | ④ | ドキュメントのファイル保存 → 再読込 | **成功**（2026-10-04） | 下記「④ 結果」参照 |
-| ⑤ | AGSL（シェーダー）をどこまで使えるか | 未着手 | 2026-10-03 追加。下記「⑤ 検証観点」参照 |
+| ⑤ | AGSL（シェーダー）をどこまで使えるか | **アプリ内は成功**（2026-10-04） | 下記「⑤ 結果」参照。ウィジェットでは使えない見込み（②で確認） |
 
 進める順番: ① → ④ → ③ → ⑤ → ②（①〜④で作るドキュメントを⑤と②で使い回すため）
 
@@ -111,6 +111,34 @@ Pixel 6a（Android 16 / API 36、`CP1A.260405.005`、Pixel Launcher）で `Remot
 - この関数は OS 内蔵プレイヤーの `CoreDocument.getDocumentApiLevel()` を返す（`sources/android-36/android/widget/RemoteViews.java`）
 - SDK 同梱の android-36 ソース（rev 1）では内蔵プレイヤーは API レベル 4 だったが、実機の OS は更新されていて **alpha20（`DOCUMENT_API_LEVEL = 8`）と同世代**
 - 「1.x のドキュメントは内蔵プレイヤーに弾かれる」という懸念はひとまず解消。実際に描画されるか、タップが届くか、アニメーションが続くかは本番の②で確認する
+
+## ⑤ 結果（2026-10-04）
+
+空を AGSL で描いた（上が青く下が明るいグラデーションに、斜めの光の帯が 20 秒周期で流れる）。サンプル: `samples/spike5-day0.rc`。
+
+- 作成側: `w.createShader(src).setFloatUniform(...).commit()` で ID を得て、`rcPaint.setShader(id)` で使う。uniform には式（NaN の変数）を渡せる。位相は作成側の式（`CONTINUOUS_SEC * 2π·180/3600`）で作って渡し、毎正時の継ぎ目の調整をシェーダーに持ち込まない
+- 描いたあとは `rcPaint.setShader(0)` で外す（プレイヤーは 0 で `setShader(null)` にする）
+- 負荷（起動から 15 秒放置後の 10 秒間、`dumpsys gfxinfo`）: 604 フレーム、Janky 0%、99 パーセンタイル 13ms。プレイヤーは paint を適用するたびに `new RuntimeShader(...)` を作っているが、この規模では問題にならなかった
+
+### 落とし穴: プレイヤーは既定ですべてのシェーダーを拒否する
+
+- 症状: ドキュメントには `SHADER DATA` も `Shader(51)` も入っているのに、空が単色のまま。エラーもログも出ない
+- 原因: `RemoteComposePlayer`（View 版）の `ShaderControl` の既定値が `(shader) -> false`。`setDocument` の中の `checkShaders` で、許可されなかったシェーダーは無効になる（`ShaderData.mShaderValid = false` のまま読み込まれない）
+- 対処: `RemoteDocumentPlayer` の `init` で `setShaderControl` を設定する（`checkShaders` は `setDocument` の中で走るので、`update` では遅い）。許可するのは、コンパイラが書き込むシェーダー（`PLANT_DOCUMENT_SHADERS`）と文字列が完全に一致するものだけにした。アルバムのファイルが差し替えられても、知らないシェーダーは動かさない
+- さらに API 33 未満では許可しない。プレイヤーの `AndroidPaintContext.setShader` は API を確かめずに `RuntimeShader`（API 33〜）を作るため、許可するとクラッシュするおそれがある。許可しなければ paint の色（`SKY`）の単色で描かれる。この見た目は、許可を入れる前の実機で確認済み
+
+### ウィジェット用プロファイル
+
+同じドキュメントを各プロファイルで書き込んだ結果（使い捨てのプローブで確認。プローブはコミットしていない）:
+
+| プロファイル | 結果 |
+| --- | --- |
+| `ANDROIDX` | 書ける（1653 バイト） |
+| `WIDGETS_V6` | 書ける（1631 バイト、ヘッダー v1.0.0）。API レベル 6 の命令セットに `DATA_SHADER` が入っている |
+| `WIDGETS_V7` | 書き込み時に例外: `Operation 45 is not supported for this version`（45 = `DATA_SHADER`） |
+
+- ただし、書けても動くとは限らない。SDK 同梱の android-36 ソースでは、OS 内蔵プレイヤーの `ShaderControl` も既定で `false`（「The default is to not accept shaders」）で、`setShaderControl` を呼んでいる箇所がない。ウィジェットではシェーダーが外され、paint の単色になる見込み
+- **②への申し送り**: ウィジェットの見た目はシェーダーなしで成立させる（paint の色を、シェーダーがないときの見た目として選ぶ）。実機の内蔵プレイヤー（API レベル 8）で本当に外されるかは②で確かめる
 
 ## ⑤ 検証観点
 
