@@ -3,6 +3,7 @@ package xyz.gekkao.sieversiacage.core.data
 import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -11,9 +12,12 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
 import xyz.gekkao.sieversiacage.core.data.db.SieversiaDatabase
+import java.io.File
+import java.time.Clock
 import javax.inject.Singleton
 
 private const val DATABASE_NAME = "sieversia.db"
+private const val ALBUM_DIRECTORY = "album"
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -32,4 +36,20 @@ object DataModule {
 
     @Provides
     fun albumEntryDao(database: SieversiaDatabase): AlbumEntryDao = database.albumEntryDao()
+
+    @Provides
+    @Singleton
+    fun albumDocumentFiles(
+        @ApplicationContext context: Context,
+    ): AlbumDocumentFiles = AlbumDocumentFiles(File(context.filesDir, ALBUM_DIRECTORY))
+
+    @Provides
+    fun clock(): Clock = Clock.systemUTC()
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+interface DataBindingModule {
+    @Binds
+    fun albumDocumentGenerator(generator: InAppAlbumDocumentGenerator): AlbumDocumentGenerator
 }
