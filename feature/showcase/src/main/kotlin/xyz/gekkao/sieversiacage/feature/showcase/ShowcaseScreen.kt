@@ -24,7 +24,7 @@ import xyz.gekkao.sieversiacage.core.player.dumpDocument
 private const val TAG = "Showcase"
 
 /**
- * 今日の株を生成 → 保存 → 読込 → 再生する（スパイク①④のまま）。
+ * 今日の株をアルバムに記録 → 読込 → 再生する（スパイク①④の流れを AlbumRepository で行う）。
  * 再生するのは常に「ファイルから読み直したバイト列」。
  */
 @Composable
@@ -33,15 +33,14 @@ fun ShowcaseScreen(
     viewModel: ShowcaseViewModel = hiltViewModel(),
 ) {
     val documents = viewModel.documents
-    val store = viewModel.store
+    val album = viewModel.album
     var ageDays by rememberSaveable { mutableIntStateOf(0) }
     var bytes by remember { mutableStateOf<ByteArray?>(null) }
 
     LaunchedEffect(ageDays) {
-        val generated = documents.inAppDocument(ageDays)
-        val file = store.save(ageDays, generated)
-        val reloaded = store.load(ageDays)
-        Log.i(TAG, "saved ${file.name} ${generated.size}B, roundTrip=${reloaded?.contentEquals(generated)}")
+        val generated = album.record(ageDays)
+        val reloaded = album.document(ageDays)
+        Log.i(TAG, "recorded day-$ageDays ${generated.size}B, roundTrip=${reloaded?.contentEquals(generated)}")
         bytes = reloaded
     }
 
@@ -57,7 +56,7 @@ fun ShowcaseScreen(
                 heightDp = documents.documentSizeDp,
                 allowedShaders = documents.allowedShaders,
             )
-            Text(text = "Day $ageDays: 生成→保存→読込 / ${current.size} bytes")
+            Text(text = "Day $ageDays: 記録→読込 / ${current.size} bytes")
             TextButton(onClick = { Log.i(TAG, "dump day-$ageDays.rc\n" + dumpDocument(current)) }) {
                 Text("中身を logcat にダンプ")
             }

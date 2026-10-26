@@ -8,6 +8,7 @@ import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryEntity
 import xyz.gekkao.sieversiacage.core.sim.GrowthStage
 import xyz.gekkao.sieversiacage.core.sim.PlantState
+import xyz.gekkao.sieversiacage.core.sim.simulate
 import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +33,9 @@ class AlbumRepository
 
         /** 1 日分を記録し、作ったドキュメントを返す。同じ日がすでにあれば上書きする。 */
         suspend fun record(state: PlantState): ByteArray = mutex.withLock { write(state) }
+
+        /** 経過日数から Sim を回して記録する。M2 で成長 tick が Sim の出力を渡すようになるまでの入口。 */
+        suspend fun record(ageDays: Int): ByteArray = record(simulate(ageDays))
 
         /** 記録のある日（経過日数の昇順）。 */
         suspend fun days(): List<Int> = dao.all().map { it.ageDays }

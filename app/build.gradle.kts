@@ -24,6 +24,8 @@ dependencies {
     implementation(project(":feature:showcase"))
     implementation(project(":feature:album"))
     implementation(project(":feature:widget"))
+    // 起動時のアルバムの作り直し（ADR-0011）
+    implementation(project(":core:data"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

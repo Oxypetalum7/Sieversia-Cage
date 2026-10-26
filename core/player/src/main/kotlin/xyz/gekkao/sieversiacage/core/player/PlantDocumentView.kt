@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.remote.player.compose.RemoteDocumentPlayer
 import androidx.compose.remote.player.core.RemoteDocument
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -25,6 +28,8 @@ fun dumpDocument(bytes: ByteArray): String = RemoteDocument(bytes).document.toNe
  *
  * @param allowedShaders 再生を許可するシェーダーの文字列。作成側が書き込んだものと完全一致したものだけ動かす。
  *   再生側が作成側（:core:compiler）に依存しないよう、呼び出し側から受け取る
+ * @param onLoadFail ドキュメントを読めなかったとき（版の違う `.rc` に未知の命令があるときなど）に呼ぶ。
+ *   このときは何も描かない。アルバムはここで作り直しを頼む（ADR-0011）
  */
 @Composable
 fun PlantDocumentView(
@@ -34,8 +39,15 @@ fun PlantDocumentView(
     allowedShaders: Set<String>,
     modifier: Modifier = Modifier,
     maxAvgFps: Int = IN_APP_MAX_AVG_FPS,
+    onLoadFail: (Throwable) -> Unit = {},
 ) {
-    val document = remember(bytes) { RemoteDocument(bytes).document }
+    val loaded = remember(bytes) { runCatching { RemoteDocument(bytes).document } }
+    val currentOnLoadFail by rememberUpdatedState(onLoadFail)
+    val document =
+        loaded.getOrElse { error ->
+            LaunchedEffect(error) { currentOnLoadFail(error) }
+            return
+        }
     RemoteDocumentPlayer(
         document = document,
         documentWidth = widthDp,

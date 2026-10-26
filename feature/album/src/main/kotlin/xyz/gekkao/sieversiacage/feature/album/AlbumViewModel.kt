@@ -2,7 +2,7 @@ package xyz.gekkao.sieversiacage.feature.album
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import xyz.gekkao.sieversiacage.core.data.AlbumStore
+import xyz.gekkao.sieversiacage.core.data.AlbumRepository
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
 import javax.inject.Inject
 
@@ -12,5 +12,5 @@ class AlbumViewModel
     @Inject
     constructor(
         val documents: PlantDocumentRepository,
-        val store: AlbumStore,
+        val album: AlbumRepository,
     ) : ViewModel()
