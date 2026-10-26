@@ -1,0 +1,61 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "4ace9744d19c6ba8de76b673ebd29287",
+    "entities": [
+      {
+        "tableName": "album_entry",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`age_days` INTEGER NOT NULL, `stage` TEXT NOT NULL, `remote_compose_version` TEXT NOT NULL, `compiler_version` INTEGER NOT NULL, `target` TEXT NOT NULL, `created_at` INTEGER NOT NULL, PRIMARY KEY(`age_days`))",
+        "fields": [
+          {
+            "fieldPath": "ageDays",
+            "columnName": "age_days",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stage",
+            "columnName": "stage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteComposeVersion",
+            "columnName": "remote_compose_version",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "compilerVersion",
+            "columnName": "compiler_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "target",
+            "columnName": "target",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "age_days"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4ace9744d19c6ba8de76b673ebd29287')"
+    ]
+  }
+}
