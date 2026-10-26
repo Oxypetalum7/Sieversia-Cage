@@ -4,9 +4,11 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.withType
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 // ADR-0003 / ADR-0017: SDK と Java の版はここだけで決める
@@ -48,4 +50,16 @@ internal fun Project.configureLint() {
     dependencies {
         add("detektPlugins", libs.findLibrary("compose-rules-detekt").get())
     }
+}
+
+/** src/test のローカルテスト。JUnit 5 + kotest で、JVM と Android のモジュールで揃える。 */
+internal fun Project.configureUnitTest() {
+    dependencies {
+        add("testImplementation", platform(libs.findLibrary("junit-bom").get()))
+        add("testImplementation", libs.findLibrary("junit-jupiter").get())
+        add("testImplementation", libs.findLibrary("kotest-assertions-core").get())
+        add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())
+        add("testRuntimeOnly", libs.findLibrary("junit-platform-launcher").get())
+    }
+    tasks.withType<Test>().configureEach { useJUnitPlatform() }
 }

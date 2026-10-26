@@ -14,6 +14,7 @@ dependencies {
     compileOnly(libs.compose.compiler.gradle.plugin)
     compileOnly(libs.ktlint.gradle.plugin)
     compileOnly(libs.detekt.gradle.plugin)
+    compileOnly(libs.room3.gradle.plugin)
 }
 
 gradlePlugin {
@@ -37,6 +38,10 @@ gradlePlugin {
         register("androidHilt") {
             id = "sieversia.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
+        }
+        register("androidRoom") {
+            id = "sieversia.android.room"
+            implementationClass = "AndroidRoomConventionPlugin"
         }
         register("androidFeature") {
             id = "sieversia.android.feature"
