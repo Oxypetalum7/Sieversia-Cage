@@ -19,9 +19,9 @@ import androidx.compose.ui.unit.dp
 private const val IN_APP_MAX_AVG_FPS = 60
 
 /** ドキュメントの中身を1行1命令のテキストにする（デバッグ・スパイク④用）。 */
-fun dumpDocument(bytes: ByteArray): String = RemoteDocument(bytes).document.toNestedString()
+fun dumpDocument(document: PlantDocument): String = RemoteDocument(document.bytes).document.toNestedString()
 
-/** RemoteCompose ドキュメントのバイト列を再生する。
+/** RemoteCompose ドキュメントを再生する。
  *
  * レイアウトを持つドキュメントでは `CoreDocument.width` / `height` がレイアウト前に 0 を返すため、
  * サイズは作成側が決めた値を受け取る。
@@ -33,7 +33,7 @@ fun dumpDocument(bytes: ByteArray): String = RemoteDocument(bytes).document.toNe
  */
 @Composable
 fun PlantDocumentView(
-    bytes: ByteArray,
+    document: PlantDocument,
     widthDp: Int,
     heightDp: Int,
     allowedShaders: Set<String>,
@@ -41,15 +41,15 @@ fun PlantDocumentView(
     maxAvgFps: Int = IN_APP_MAX_AVG_FPS,
     onLoadFail: (Throwable) -> Unit = {},
 ) {
-    val loaded = remember(bytes) { runCatching { RemoteDocument(bytes).document } }
+    val loaded = remember(document) { runCatching { RemoteDocument(document.bytes).document } }
     val currentOnLoadFail by rememberUpdatedState(onLoadFail)
-    val document =
+    val coreDocument =
         loaded.getOrElse { error ->
             LaunchedEffect(error) { currentOnLoadFail(error) }
             return
         }
     RemoteDocumentPlayer(
-        document = document,
+        document = coreDocument,
         documentWidth = widthDp,
         documentHeight = heightDp,
         // alpha20 では内部の Modifier.size が効かず 0x0 になるため、外から大きさを与える
