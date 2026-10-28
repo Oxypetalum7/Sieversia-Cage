@@ -4,9 +4,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import android.widget.RemoteViews
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
 import javax.inject.Inject
 
@@ -28,7 +28,7 @@ class PlantWidgetProvider : AppWidgetProvider() {
     ) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return // initialLayout の代わりの表示のまま
         val bytes = documents.widgetDocument(SPIKE_DAY)
-        Log.i(TAG, "widget ${bytes.size}B, player level=${RemoteViews.DrawInstructions.getSupportedVersion()}")
+        Timber.tag(TAG).i("widget ${bytes.size}B, player level=${RemoteViews.DrawInstructions.getSupportedVersion()}")
         val views = RemoteViews(RemoteViews.DrawInstructions.Builder(listOf(bytes)).build())
         appWidgetManager.updateAppWidget(appWidgetIds, views)
     }

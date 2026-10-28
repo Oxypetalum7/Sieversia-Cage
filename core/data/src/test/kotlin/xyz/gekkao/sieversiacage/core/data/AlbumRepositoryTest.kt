@@ -4,6 +4,10 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -115,6 +119,16 @@ class AlbumRepositoryTest {
         }
 
     @Test
+    fun `記録した日の一覧は経過日数の順に流れる`() =
+        runTest {
+            val repository = repository()
+            repository.record(simulate(7))
+            repository.record(simulate(0))
+
+            repository.days().first() shouldContainExactly listOf(0, 7)
+        }
+
+    @Test
     fun `記録のない日の作り直しは null を返す`() =
         runTest {
             repository().regenerate(9).shouldBeNull()
@@ -134,21 +148,27 @@ private class FakeGenerator(
 }
 
 private class FakeAlbumEntryDao : AlbumEntryDao {
-    private val rows = sortedMapOf<Int, AlbumEntryEntity>()
+    private val rows = MutableStateFlow(sortedMapOf<Int, AlbumEntryEntity>())
 
     override suspend fun upsert(entry: AlbumEntryEntity) {
-        rows[entry.ageDays] = entry
+        rows.value =
+            sortedMapOf<Int, AlbumEntryEntity>().apply {
+                putAll(rows.value)
+                put(entry.ageDays, entry)
+            }
     }
 
-    override suspend fun find(ageDays: Int): AlbumEntryEntity? = rows[ageDays]
+    override suspend fun find(ageDays: Int): AlbumEntryEntity? = rows.value[ageDays]
 
-    override suspend fun all(): List<AlbumEntryEntity> = rows.values.toList()
+    override suspend fun all(): List<AlbumEntryEntity> = rows.value.values.toList()
+
+    override fun observeDays(): Flow<List<Int>> = rows.map { it.keys.toList() }
 
     override suspend fun stale(
         compilerVersion: Int,
         remoteComposeVersion: String,
     ): List<AlbumEntryEntity> =
-        rows.values.filter {
+        rows.value.values.filter {
             it.compilerVersion < compilerVersion || it.remoteComposeVersion != remoteComposeVersion
         }
 }

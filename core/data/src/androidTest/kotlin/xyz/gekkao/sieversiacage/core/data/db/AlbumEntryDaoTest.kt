@@ -5,6 +5,7 @@ import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -60,6 +61,14 @@ class AlbumEntryDaoTest {
             listOf(7, 0, 3).forEach { dao.upsert(entry(ageDays = it)) }
 
             assertEquals(listOf(0, 3, 7), dao.all().map { it.ageDays })
+        }
+
+    @Test
+    fun `observeDaysは記録した日を経過日数の順に流す`() =
+        runTest {
+            listOf(7, 0).forEach { dao.upsert(entry(ageDays = it)) }
+
+            assertEquals(listOf(0, 7), dao.observeDays().first())
         }
 
     @Test

@@ -1,6 +1,8 @@
 package xyz.gekkao.sieversiacage.core.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,8 +39,8 @@ class AlbumRepository
         /** 経過日数から Sim を回して記録する。M2 で成長 tick が Sim の出力を渡すようになるまでの入口。 */
         suspend fun record(ageDays: Int): ByteArray = record(simulate(ageDays))
 
-        /** 記録のある日（経過日数の昇順）。 */
-        suspend fun days(): List<Int> = dao.all().map { it.ageDays }
+        /** 記録のある日（経過日数の昇順）。記録が増えると流れ直す。 */
+        fun days(): Flow<List<Int>> = dao.observeDays().distinctUntilChanged()
 
         /** 記録のある日のドキュメント。`.rc` がなければ作り直す。記録のない日は null。 */
         suspend fun document(ageDays: Int): ByteArray? {

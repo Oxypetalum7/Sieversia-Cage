@@ -5,6 +5,7 @@ import org.gradle.kotlin.dsl.dependencies
 /**
  * feature モジュール（ADR-0016）。Android ライブラリ＋Compose＋Hilt＋Navigation Compose（型安全なルート）。
  * feature 同士は依存しない。画面遷移は :app が持つ。
+ * ViewModel は MVI で書き、「Intent を入れて UiState の遷移を確かめる」テストを MockK と Turbine で書く（ADR-0005）。
  */
 class AndroidFeatureConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -19,6 +20,10 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("implementation", libs.findLibrary("androidx-hilt-lifecycle-viewmodel-compose").get())
                 add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())
                 add("implementation", libs.findLibrary("kotlinx-serialization-core").get())
+                add("implementation", libs.findLibrary("timber").get())
+
+                add("testImplementation", libs.findLibrary("mockk").get())
+                add("testImplementation", libs.findLibrary("turbine").get())
             }
         }
     }

@@ -1,12 +1,12 @@
 package xyz.gekkao.sieversiacage
 
 import android.app.Application
-import android.util.Log
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import xyz.gekkao.sieversiacage.core.data.AlbumRepository
 import javax.inject.Inject
 
@@ -22,9 +22,10 @@ class SieversiaCageApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         scope.launch {
             val regenerated = album.regenerateStale()
-            Log.i(TAG, "album: regenerated $regenerated day(s)")
+            Timber.tag(TAG).i("album: regenerated $regenerated day(s)")
         }
     }
 }

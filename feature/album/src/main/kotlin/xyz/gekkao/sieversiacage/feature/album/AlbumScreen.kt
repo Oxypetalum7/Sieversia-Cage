@@ -1,6 +1,5 @@
 package xyz.gekkao.sieversiacage.feature.album
 
-import android.util.Log
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -22,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import xyz.gekkao.sieversiacage.core.player.PlantDocumentView
 
 private const val TAG = "Album"
@@ -40,7 +40,7 @@ fun AlbumScreen(
     val album = viewModel.album
     val scope = rememberCoroutineScope()
     // 画面に入るたびに読み直す。ショーケースで増えた日もここで見える
-    val savedDays by produceState(emptyList<Int>()) { value = album.days() }
+    val savedDays by album.days().collectAsStateWithLifecycle(emptyList())
     var selectedDay by rememberSaveable { mutableStateOf<Int?>(null) }
     var bytes by remember { mutableStateOf<ByteArray?>(null) }
     // 作り直しても読めないときに繰り返さないよう、作り直した日を覚えておく
@@ -66,7 +66,7 @@ fun AlbumScreen(
                 allowedShaders = documents.allowedShaders,
                 onLoadFail = { error ->
                     val day = selectedDay ?: return@PlantDocumentView
-                    Log.w(TAG, "day-$day を読めなかった", error)
+                    Timber.tag(TAG).w(error, "day-$day を読めなかった")
                     if (regeneratedDays.add(day)) {
                         scope.launch { bytes = album.regenerate(day) }
                     }

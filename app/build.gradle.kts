@@ -7,6 +7,9 @@ plugins {
 android {
     namespace = "xyz.gekkao.sieversiacage"
 
+    // Timber の DebugTree を debug ビルドだけで植える
+    buildFeatures.buildConfig = true
+
     defaultConfig {
         applicationId = "xyz.gekkao.sieversiacage"
         versionCode = 1
@@ -31,4 +34,5 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.timber)
 }
