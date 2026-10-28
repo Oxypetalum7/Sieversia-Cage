@@ -1,0 +1,44 @@
+# M1 の CI ゲート（ADR-0005 / ADR-0013）。違反やテストの失敗でビルドを落とす。
+# 実機が要るテスト（:core:data の connectedDebugAndroidTest）はここでは回さず、手元の Pixel 6a で回す（ADR-0018）。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Gradle デーモンは JDK 21 で動かす（ADR-0008。gradle/gradle-daemon-jvm.properties）
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # compileSdk 37.1 などの足りない SDK を AGP が取りに行けるよう、ライセンスを受け入れておく
+      - uses: android-actions/setup-android@v4
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Test, lint and build
+        run: ./gradlew test ktlintCheck detekt :app:assembleDebug
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: '**/build/reports/'
+          retention-days: 7
