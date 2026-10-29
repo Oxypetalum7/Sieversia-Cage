@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import xyz.gekkao.sieversiacage.core.data.AlbumRepository
+import xyz.gekkao.sieversiacage.core.data.GrowthRepository
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
 import xyz.gekkao.sieversiacage.core.player.PlantDocument
 
@@ -32,8 +33,10 @@ class ShowcaseViewModelTest {
             coEvery { document(any()) } answers { bytesOf(firstArg()) }
         }
 
+    private val growth = mockk<GrowthRepository>(relaxed = true)
+
     private fun viewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) =
-        ShowcaseViewModel(documents, album, savedStateHandle)
+        ShowcaseViewModel(documents, album, growth, savedStateHandle)
 
     @Test
     fun `最初は 0 日目を記録して読み直したドキュメントを表示する`() =
@@ -84,6 +87,28 @@ class ShowcaseViewModelTest {
 
             viewModel.uiState.value.ageDays shouldBe 1
             viewModel.uiState.value.document shouldBe PlantDocument(bytesOf(1))
+        }
+
+    @Test
+    fun `水やりのホストアクションが届くと、水やりを記録する`() =
+        runTest {
+            every { documents.waterActionId } returns 1
+            val viewModel = viewModel()
+
+            viewModel.onIntent(ShowcaseIntent.ReceiveHostAction(actionId = 1, metadata = ""))
+
+            coVerify(exactly = 1) { growth.recordWatering() }
+        }
+
+    @Test
+    fun `水やり以外のホストアクションは記録しない`() =
+        runTest {
+            every { documents.waterActionId } returns 1
+            val viewModel = viewModel()
+
+            viewModel.onIntent(ShowcaseIntent.ReceiveHostAction(actionId = 99, metadata = null))
+
+            coVerify(exactly = 0) { growth.recordWatering() }
         }
 
     @Test

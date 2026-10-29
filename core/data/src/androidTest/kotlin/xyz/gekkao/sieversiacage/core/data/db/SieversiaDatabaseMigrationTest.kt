@@ -70,6 +70,28 @@ class SieversiaDatabaseMigrationTest {
         }
 
     @Test
+    fun `版2の行は版3でも残り水やりの記録と植えた日の表が増える`() =
+        runTest {
+            helper.createDatabase(2).use { connection ->
+                connection.execSQL(
+                    "INSERT INTO album_entry " +
+                        "(age_days, stage, cycle, stage_progress, growth, branch_count, flower_count, " +
+                        "soil_moisture, vigor, remote_compose_version, compiler_version, target, created_at) " +
+                        "VALUES (5, 'LEAF', 0, 0.25, 5.0, 1, 1, 1.0, 1.0, '1.0.0-alpha20', 3, 'IN_APP', 0)",
+                )
+            }
+
+            helper.runMigrationsAndValidate(3).use { connection ->
+                connection.prepare("SELECT growth FROM album_entry WHERE age_days = 5").use {
+                    it.step()
+                    assertEquals(5.0, it.getDouble(0), 0.0)
+                }
+                connection.execSQL("INSERT INTO watering_log (date, taps) VALUES ('2026-05-01', 1)")
+                connection.execSQL("INSERT INTO plant (id, planted_on) VALUES (1, '2026-05-01')")
+            }
+        }
+
+    @Test
     fun `版1から最新の版まですべてのマイグレーションを通して開ける`() =
         runTest {
             helper.createDatabase(1).close()

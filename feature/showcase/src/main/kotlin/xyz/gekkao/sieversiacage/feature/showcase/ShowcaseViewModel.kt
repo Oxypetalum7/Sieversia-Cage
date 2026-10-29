@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import xyz.gekkao.sieversiacage.core.data.AlbumRepository
+import xyz.gekkao.sieversiacage.core.data.GrowthRepository
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
 import xyz.gekkao.sieversiacage.core.player.PlantDocument
 import xyz.gekkao.sieversiacage.core.player.dumpDocument
@@ -31,6 +32,7 @@ class ShowcaseViewModel
     constructor(
         private val documents: PlantDocumentRepository,
         private val album: AlbumRepository,
+        private val growth: GrowthRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState =
@@ -60,10 +62,13 @@ class ShowcaseViewModel
             }
         }
 
-        // M2-1 の検証では、届いたことをログに出すだけ。記録は Sim の本実装（M2-4）で作る
+        // 跳ねる反応はドキュメントの中で返っているので、ここでは水やりの記録だけをする（ADR-0014 / ADR-0020）
         private fun onHostAction(action: ShowcaseIntent.ReceiveHostAction) {
             if (action.actionId != documents.waterActionId) return
-            Timber.tag(WATERING_TAG).i("in-app tap received: metadata=${action.metadata}")
+            viewModelScope.launch {
+                growth.recordWatering()
+                Timber.tag(WATERING_TAG).i("in-app tap recorded")
+            }
         }
 
         private fun dump(state: ShowcaseUiState) {

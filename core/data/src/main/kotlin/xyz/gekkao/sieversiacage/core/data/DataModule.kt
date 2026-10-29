@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
+import xyz.gekkao.sieversiacage.core.data.db.GrowthDao
 import xyz.gekkao.sieversiacage.core.data.db.SieversiaDatabase
 import java.io.File
 import java.time.Clock
@@ -38,13 +39,17 @@ object DataModule {
     fun albumEntryDao(database: SieversiaDatabase): AlbumEntryDao = database.albumEntryDao()
 
     @Provides
+    fun growthDao(database: SieversiaDatabase): GrowthDao = database.growthDao()
+
+    @Provides
     @Singleton
     fun albumDocumentFiles(
         @ApplicationContext context: Context,
     ): AlbumDocumentFiles = AlbumDocumentFiles(File(context.filesDir, ALBUM_DIRECTORY))
 
+    // ADR-0020: 日付は端末の現地時刻で区切る
     @Provides
-    fun clock(): Clock = Clock.systemUTC()
+    fun clock(): Clock = Clock.systemDefaultZone()
 }
 
 @Module
