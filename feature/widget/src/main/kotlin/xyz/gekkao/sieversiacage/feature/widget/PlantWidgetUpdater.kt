@@ -15,7 +15,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "Widget"
-private const val SPIKE_DAY = 10
 
 /**
  * ホーム画面のウィジェットにドキュメントを載せる（スパイク②・M2-1・M2-2）。
@@ -35,12 +34,12 @@ class PlantWidgetUpdater
             if (ids.isNotEmpty()) update(manager, ids)
         }
 
-        fun update(
+        suspend fun update(
             manager: AppWidgetManager,
             ids: IntArray,
         ) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return // initialLayout の代わりの表示のまま
-            val bytes = documents.widgetDocument(SPIKE_DAY)
+            val bytes = documents.todayWidgetDocument()
             Timber
                 .tag(
                     TAG,

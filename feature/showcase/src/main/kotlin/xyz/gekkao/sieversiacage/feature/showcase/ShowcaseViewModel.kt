@@ -15,6 +15,7 @@ import xyz.gekkao.sieversiacage.core.data.AlbumRepository
 import xyz.gekkao.sieversiacage.core.data.GrowthRepository
 import xyz.gekkao.sieversiacage.core.data.GrowthTicker
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
+import xyz.gekkao.sieversiacage.core.data.WidgetRefresher
 import xyz.gekkao.sieversiacage.core.player.PlantDocument
 import xyz.gekkao.sieversiacage.core.player.dumpDocument
 import javax.inject.Inject
@@ -35,6 +36,7 @@ class ShowcaseViewModel
         private val album: AlbumRepository,
         private val growth: GrowthRepository,
         private val ticker: GrowthTicker,
+        private val widgets: WidgetRefresher,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState =
@@ -79,6 +81,8 @@ class ShowcaseViewModel
             viewModelScope.launch {
                 growth.recordWatering()
                 Timber.tag(WATERING_TAG).i("in-app tap recorded")
+                // ADR-0021: アプリで水をやっても、ウィジェットに「今日の水やり: 済み」を出す
+                widgets.refresh()
             }
         }
 

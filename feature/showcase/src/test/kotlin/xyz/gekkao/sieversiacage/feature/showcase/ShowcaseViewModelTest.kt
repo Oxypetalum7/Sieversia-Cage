@@ -15,6 +15,7 @@ import xyz.gekkao.sieversiacage.core.data.AlbumRepository
 import xyz.gekkao.sieversiacage.core.data.GrowthRepository
 import xyz.gekkao.sieversiacage.core.data.GrowthTicker
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
+import xyz.gekkao.sieversiacage.core.data.WidgetRefresher
 import xyz.gekkao.sieversiacage.core.player.PlantDocument
 import java.time.LocalDate
 
@@ -44,9 +45,10 @@ class ShowcaseViewModelTest {
         }
 
     private val ticker = mockk<GrowthTicker>(relaxed = true)
+    private val widgets = mockk<WidgetRefresher>(relaxed = true)
 
     private fun viewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) =
-        ShowcaseViewModel(documents, album, growth, ticker, savedStateHandle)
+        ShowcaseViewModel(documents, album, growth, ticker, widgets, savedStateHandle)
 
     @Test
     fun `最初は抜けている日を進めてから、今日の株をアルバムから読んで表示する`() =
@@ -110,7 +112,10 @@ class ShowcaseViewModelTest {
 
             viewModel.onIntent(ShowcaseIntent.ReceiveHostAction(actionId = 1, metadata = ""))
 
-            coVerify(exactly = 1) { growth.recordWatering() }
+            coVerifyOrder {
+                growth.recordWatering()
+                widgets.refresh()
+            }
         }
 
     @Test

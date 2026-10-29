@@ -29,6 +29,7 @@ import xyz.gekkao.sieversiacage.core.sim.GrowthStage
 import xyz.gekkao.sieversiacage.core.sim.PlantState
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** ドキュメントの基準サイズ（dp）。再生側はこれをプレイヤーの大きさに使う。 */
@@ -37,7 +38,10 @@ private const val PAINT_FILL = 0
 private const val PAINT_STROKE = 1
 
 private const val SKY = 0xFFE8F1F5.toInt()
+
+/** 湿った土。乾くにつれて [SOIL_DRY] に近づく（見た目は M3 で作り込む）。 */
 private const val SOIL = 0xFF6D5A4B.toInt()
+private const val SOIL_DRY = 0xFFB09A80.toInt()
 private const val STEM = 0xFF4E7D3A.toInt()
 private const val PETAL = 0xFFFFFDF5.toInt()
 private const val PETAL_EDGE = 0xFFD8D2C0.toInt()
@@ -120,13 +124,16 @@ class WriterPlantDocumentCompiler(
     private val useShader = target != DocumentTarget.WIDGET_V7
 
     // obtain(w, h, contentDescription, profile) は説明文を捨てる（プロファイルのファクトリーが null を渡す）ため渡さない
-    override fun compile(state: PlantState): ByteArray {
+    override fun compile(
+        state: PlantState,
+        display: DisplayInfo,
+    ): ByteArray {
         val w =
             RemoteComposeWriter.obtain(PLANT_DOCUMENT_SIZE, PLANT_DOCUMENT_SIZE, profile)
         w.root {
             when (target) {
-                DocumentTarget.IN_APP -> drawPlantCanvas(w, state, RecordingModifier().fillMaxSize())
-                DocumentTarget.WIDGET_V6, DocumentTarget.WIDGET_V7 -> widgetLayout(w, state)
+                DocumentTarget.IN_APP -> drawPlantCanvas(w, state, display, RecordingModifier().fillMaxSize())
+                DocumentTarget.WIDGET_V6, DocumentTarget.WIDGET_V7 -> widgetLayout(w, state, display)
             }
         }
         return w.encodeToByteArray()
@@ -144,6 +151,7 @@ class WriterPlantDocumentCompiler(
     private fun widgetLayout(
         w: RemoteComposeWriter,
         state: PlantState,
+        display: DisplayInfo,
     ) {
         val reserve =
             PanelReserve(
@@ -153,7 +161,7 @@ class WriterPlantDocumentCompiler(
                 memoHeight = dp(MEMO_HEIGHT_DP),
             )
         w.box(RecordingModifier().fillMaxSize(), BoxLayout.START, BoxLayout.TOP) {
-            drawPlantCanvas(w, state, RecordingModifier().fillMaxSize(), reserve)
+            drawPlantCanvas(w, state, display, RecordingModifier().fillMaxSize(), reserve)
 
             // 横: 植物の最小幅 + 状態の欄が入らなければ、状態の欄が消える。並びは右に寄せ、状態の欄を右端に置く
             w.collapsibleRow(RecordingModifier().fillMaxSize(), RowLayout.END, RowLayout.TOP) {
@@ -166,8 +174,8 @@ class WriterPlantDocumentCompiler(
                 w.column(status, ColumnLayout.START, ColumnLayout.TOP) {
                     text(w, "Day ${state.ageDays}", TITLE_SP)
                     text(w, stageLabel(state.stage), BODY_SP)
-                    // 仮の値。水やりの回数は Sim の本実装（M2-4）でつなぐ
-                    text(w, "水やり 3 回", BODY_SP)
+                    // ADR-0021: その日の水やりは株に効くのは翌日からなので、記録されたことをここで見せる
+                    text(w, if (display.wateredToday) "今日の水やり: 済み" else "今日の水やり: まだ", BODY_SP)
                 }
             }
 
@@ -225,6 +233,7 @@ class WriterPlantDocumentCompiler(
     private fun drawPlantCanvas(
         w: RemoteComposeWriter,
         state: PlantState,
+        display: DisplayInfo,
         modifier: RecordingModifier,
         reserve: PanelReserve? = null,
     ) {
@@ -246,8 +255,10 @@ class WriterPlantDocumentCompiler(
         val flowerY = w.floatExpression(plantHeight, FLOWER_RATIO, MUL)
 
         drawSky(w, width, height, useShader)
+        // ADR-0021: 土の見た目は、その日の水やりをすぐ反映する（Sim の湿り気は昨日までの記録で決まる）
+        val moisture = if (display.wateredToday) 1f else state.soilMoisture
         w.rcPaint
-            .setColor(SOIL)
+            .setColor(soilColor(moisture))
             .setStyle(PAINT_FILL)
             .commit()
         w.drawRect(0f, ground, width, height)
@@ -320,6 +331,24 @@ private fun availableLength(
     val shown = w.floatExpression(total, plantMin + panel, SUB, STEP_SHARPNESS, MUL, 1f, ADD, 1f, 0f, CLAMP)
     return w.floatExpression(total, shown, panel, MUL, SUB)
 }
+
+/** 土の湿り気（0〜1）から土の色を決める。1 で [SOIL]、0 で [SOIL_DRY]。 */
+private fun soilColor(moisture: Float): Int {
+    val m = moisture.coerceIn(0f, 1f)
+
+    fun channel(shift: Int): Int {
+        val wet = (SOIL shr shift) and CHANNEL_MASK
+        val dry = (SOIL_DRY shr shift) and CHANNEL_MASK
+        return (dry + (wet - dry) * m).roundToInt() shl shift
+    }
+    return OPAQUE or channel(RED_SHIFT) or channel(GREEN_SHIFT) or channel(BLUE_SHIFT)
+}
+
+private const val CHANNEL_MASK = 0xFF
+private const val RED_SHIFT = 16
+private const val GREEN_SHIFT = 8
+private const val BLUE_SHIFT = 0
+private const val OPAQUE = 0xFF shl 24
 
 private fun stageLabel(stage: GrowthStage): String =
     when (stage) {
