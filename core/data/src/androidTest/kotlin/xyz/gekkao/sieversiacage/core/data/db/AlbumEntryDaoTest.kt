@@ -91,6 +91,13 @@ class AlbumEntryDaoTest {
     ) = AlbumEntryEntity(
         ageDays = ageDays,
         stage = "SPROUT",
+        cycle = 0,
+        stageProgress = 0f,
+        growth = 0f,
+        branchCount = 1,
+        flowerCount = 1,
+        soilMoisture = 1f,
+        vigor = 1f,
         remoteComposeVersion = remoteComposeVersion,
         compilerVersion = compilerVersion,
         target = "IN_APP",

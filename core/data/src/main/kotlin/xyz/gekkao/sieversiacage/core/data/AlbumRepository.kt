@@ -10,8 +10,9 @@ import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryEntity
 import xyz.gekkao.sieversiacage.core.sim.GrowthStage
 import xyz.gekkao.sieversiacage.core.sim.PlantState
-import xyz.gekkao.sieversiacage.core.sim.simulate
+import xyz.gekkao.sieversiacage.core.sim.simulateWateredDaily
 import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,8 +37,14 @@ class AlbumRepository
         /** 1 日分を記録し、作ったドキュメントを返す。同じ日がすでにあれば上書きする。 */
         suspend fun record(state: PlantState): ByteArray = mutex.withLock { write(state) }
 
-        /** 経過日数から Sim を回して記録する。M2 で成長 tick が Sim の出力を渡すようになるまでの入口。 */
-        suspend fun record(ageDays: Int): ByteArray = record(simulate(ageDays))
+        /**
+         * 「今日まで毎日水をやった」前提で、植えてから [ageDays] 日目の株を記録する（ショーケースのプレビュー用）。
+         * 毎日の成長 tick（M2-5）が水やりの記録から Sim を回すようになるまでの入口。
+         */
+        suspend fun record(ageDays: Int): ByteArray {
+            val today = LocalDate.now(clock)
+            return record(simulateWateredDaily(today.minusDays(ageDays.toLong()), ageDays))
+        }
 
         /** 記録のある日（経過日数の昇順）。記録が増えると流れ直す。 */
         fun days(): Flow<List<Int>> = dao.observeDays().distinctUntilChanged()
@@ -89,11 +96,29 @@ class AlbumRepository
             AlbumEntryEntity(
                 ageDays = ageDays,
                 stage = stage.name,
+                cycle = cycle,
+                stageProgress = stageProgress,
+                growth = growth,
+                branchCount = branchCount,
+                flowerCount = flowerCount,
+                soilMoisture = soilMoisture,
+                vigor = vigor,
                 remoteComposeVersion = generator.remoteComposeVersion,
                 compilerVersion = generator.compilerVersion,
                 target = generator.target.name,
                 createdAt = clock.millis(),
             )
 
-        private fun AlbumEntryEntity.toPlantState() = PlantState(ageDays = ageDays, stage = GrowthStage.valueOf(stage))
+        private fun AlbumEntryEntity.toPlantState() =
+            PlantState(
+                ageDays = ageDays,
+                cycle = cycle,
+                stage = GrowthStage.valueOf(stage),
+                stageProgress = stageProgress,
+                growth = growth,
+                branchCount = branchCount,
+                flowerCount = flowerCount,
+                soilMoisture = soilMoisture,
+                vigor = vigor,
+            )
     }

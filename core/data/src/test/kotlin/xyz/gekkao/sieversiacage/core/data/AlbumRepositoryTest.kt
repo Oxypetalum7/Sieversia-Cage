@@ -16,14 +16,20 @@ import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryEntity
 import xyz.gekkao.sieversiacage.core.sim.GrowthStage
 import xyz.gekkao.sieversiacage.core.sim.PlantState
-import xyz.gekkao.sieversiacage.core.sim.simulate
+import xyz.gekkao.sieversiacage.core.sim.simulateWateredDaily
 import java.io.File
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 private const val NOW = 1_000L
 private const val RC_VERSION = "1.0.0-alpha20"
+
+// 季節係数が 1.0 の月に植えた前提。4 日目は葉、10 日目は蕾、14 日目は開花（ADR-0020 のしきい値）
+private val PLANTED_ON: LocalDate = LocalDate.of(2026, 5, 1)
+
+private fun state(ageDays: Int) = simulateWateredDaily(PLANTED_ON, ageDays)
 
 class AlbumRepositoryTest {
     @TempDir
@@ -38,29 +44,37 @@ class AlbumRepositoryTest {
     @Test
     fun `記録すると Sim の出力と生成メタデータの行と rc が残る`() =
         runTest {
-            val bytes = repository().record(simulate(3))
+            val recorded = state(4)
+            val bytes = repository().record(recorded)
 
-            dao.find(3) shouldBe
+            dao.find(4) shouldBe
                 AlbumEntryEntity(
-                    ageDays = 3,
+                    ageDays = 4,
                     stage = "LEAF",
+                    cycle = recorded.cycle,
+                    stageProgress = recorded.stageProgress,
+                    growth = recorded.growth,
+                    branchCount = recorded.branchCount,
+                    flowerCount = recorded.flowerCount,
+                    soilMoisture = recorded.soilMoisture,
+                    vigor = recorded.vigor,
                     remoteComposeVersion = RC_VERSION,
                     compilerVersion = 1,
                     target = "IN_APP",
                     createdAt = NOW,
                 )
-            files.load(3) shouldBe bytes
+            files.load(4) shouldBe bytes
         }
 
     @Test
     fun `rc がない日は読むときに作り直す`() =
         runTest {
             val repository = repository()
-            repository.record(simulate(3))
-            files.delete(3)
+            repository.record(state(4))
+            files.delete(4)
 
-            repository.document(3)?.decodeToString() shouldBe "v1:3:LEAF"
-            files.load(3)?.decodeToString() shouldBe "v1:3:LEAF"
+            repository.document(4)?.decodeToString() shouldBe "v1:4:LEAF"
+            files.load(4)?.decodeToString() shouldBe "v1:4:LEAF"
         }
 
     @Test
@@ -74,9 +88,9 @@ class AlbumRepositoryTest {
     @Test
     fun `起動時に Compiler の版が古い日と Remote Compose の版が違う日だけを作り直す`() =
         runTest {
-            repository(FakeGenerator(compilerVersion = 1)).record(simulate(0))
-            repository(FakeGenerator(compilerVersion = 2, remoteComposeVersion = "1.0.0-alpha19")).record(simulate(3))
-            repository(FakeGenerator(compilerVersion = 2)).record(simulate(7))
+            repository(FakeGenerator(compilerVersion = 1)).record(state(0))
+            repository(FakeGenerator(compilerVersion = 2, remoteComposeVersion = "1.0.0-alpha19")).record(state(4))
+            repository(FakeGenerator(compilerVersion = 2)).record(state(7))
 
             val regenerated = repository(FakeGenerator(compilerVersion = 2)).regenerateStale()
 
@@ -84,25 +98,25 @@ class AlbumRepositoryTest {
             dao.all().map { it.compilerVersion to it.remoteComposeVersion } shouldContainExactly
                 List(3) { 2 to RC_VERSION }
             files.load(0)?.decodeToString() shouldBe "v2:0:SPROUT"
-            files.load(3)?.decodeToString() shouldBe "v2:3:LEAF"
+            files.load(4)?.decodeToString() shouldBe "v2:4:LEAF"
         }
 
     @Test
     fun `起動時に rc がない日を作り直す`() =
         runTest {
             val repository = repository()
-            repository.record(simulate(10))
-            files.delete(10)
+            repository.record(state(14))
+            files.delete(14)
 
             repository.regenerateStale() shouldBe 1
-            files.load(10)?.decodeToString() shouldBe "v1:10:BLOOM"
+            files.load(14)?.decodeToString() shouldBe "v1:14:BLOOM"
         }
 
     @Test
     fun `起動時に記録のない rc を消す`() =
         runTest {
             val repository = repository()
-            repository.record(simulate(0))
+            repository.record(state(0))
             files.save(14, "spike".encodeToByteArray())
 
             repository.regenerateStale() shouldBe 0
@@ -112,8 +126,8 @@ class AlbumRepositoryTest {
     @Test
     fun `作り直しは保存した Sim の出力から作り、Sim を回し直さない`() =
         runTest {
-            // Sim の計算式が変わって、今なら 3 日目は LEAF になるとしても、記録した段階を使う
-            dao.upsert(simulate(3).toEntityWith(stage = GrowthStage.BUD, compilerVersion = 0))
+            // Sim の計算式が変わって、今なら 3 日目は芽になるとしても、記録した段階を使う
+            dao.upsert(state(3).toEntityWith(stage = GrowthStage.BUD, compilerVersion = 0))
 
             repository().regenerate(3)?.decodeToString() shouldBe "v1:3:BUD"
         }
@@ -122,8 +136,8 @@ class AlbumRepositoryTest {
     fun `記録した日の一覧は経過日数の順に流れる`() =
         runTest {
             val repository = repository()
-            repository.record(simulate(7))
-            repository.record(simulate(0))
+            repository.record(state(7))
+            repository.record(state(0))
 
             repository.days().first() shouldContainExactly listOf(0, 7)
         }
@@ -179,6 +193,13 @@ private fun PlantState.toEntityWith(
 ) = AlbumEntryEntity(
     ageDays = ageDays,
     stage = stage.name,
+    cycle = cycle,
+    stageProgress = stageProgress,
+    growth = growth,
+    branchCount = branchCount,
+    flowerCount = flowerCount,
+    soilMoisture = soilMoisture,
+    vigor = vigor,
     remoteComposeVersion = RC_VERSION,
     compilerVersion = compilerVersion,
     target = "IN_APP",

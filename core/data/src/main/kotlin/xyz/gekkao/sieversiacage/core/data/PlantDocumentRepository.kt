@@ -8,7 +8,10 @@ import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SHADERS
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SIZE
 import xyz.gekkao.sieversiacage.core.compiler.WATER_ACTION_ID
 import xyz.gekkao.sieversiacage.core.compiler.WriterPlantDocumentCompiler
-import xyz.gekkao.sieversiacage.core.sim.simulate
+import xyz.gekkao.sieversiacage.core.sim.PlantState
+import xyz.gekkao.sieversiacage.core.sim.simulateWateredDaily
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,6 +23,7 @@ class PlantDocumentRepository
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val clock: Clock,
     ) {
         private val inAppCompiler = WriterPlantDocumentCompiler(DocumentTarget.IN_APP)
 
@@ -33,7 +37,7 @@ class PlantDocumentRepository
         val allowedShaders: Set<String> = PLANT_DOCUMENT_SHADERS
 
         /** アプリ内（ショーケース・アルバム）で再生するドキュメント。 */
-        fun inAppDocument(ageDays: Int): ByteArray = inAppCompiler.compile(simulate(ageDays))
+        fun inAppDocument(ageDays: Int): ByteArray = inAppCompiler.compile(preview(ageDays))
 
         /** ホーム画面のウィジェットに載せるドキュメント。 */
         fun widgetDocument(ageDays: Int): ByteArray {
@@ -44,6 +48,12 @@ class PlantDocumentRepository
                 DocumentTarget.WIDGET_V6,
                 metrics.density,
                 spToPx,
-            ).compile(simulate(ageDays))
+            ).compile(preview(ageDays))
+        }
+
+        // 水やりの記録から Sim を回すのは毎日の成長 tick（M2-5）から。それまでは「今日まで毎日水をやった」前提で描く
+        private fun preview(ageDays: Int): PlantState {
+            val today = LocalDate.now(clock)
+            return simulateWateredDaily(today.minusDays(ageDays.toLong()), ageDays)
         }
     }
