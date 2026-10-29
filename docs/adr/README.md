@@ -31,3 +31,4 @@ Sieversia Cage の設計判断の記録。提案と採択の経緯を残し、�
 | [0016](0016-module-layout-after-spike.md) | スパイク後のモジュール構成（feature の切り出し） | 採択 | 2026-10-04 |
 | [0017](0017-build-logic-convention-plugins.md) | ビルドの共通設定を build-logic の convention plugin にまとめる | 採択 | 2026-10-04 |
 | [0018](0018-album-storage-room.md) | アルバムの正のデータは Room 3 に置き、.rc はファイルのキャッシュにする | 採択 | 2026-10-26 |
+| [0019](0019-m2-plan.md) | M2 は不明点の検証から始め、電池の確認とアルバムの保存形式の判断を加える | 採択 | 2026-10-29 |
