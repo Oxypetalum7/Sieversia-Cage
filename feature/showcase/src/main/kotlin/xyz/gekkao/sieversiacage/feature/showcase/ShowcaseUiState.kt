@@ -26,4 +26,10 @@ sealed interface ShowcaseIntent {
 
     /** 表示中のドキュメントの中身を logcat に出す（デバッグ用）。 */
     data object DumpDocument : ShowcaseIntent
+
+    /** ドキュメントがホストアクションを送った（水やりのタップなど。ADR-0014）。 */
+    data class ReceiveHostAction(
+        val actionId: Int,
+        val metadata: String?,
+    ) : ShowcaseIntent
 }

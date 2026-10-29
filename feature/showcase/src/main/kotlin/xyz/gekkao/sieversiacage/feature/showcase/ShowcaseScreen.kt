@@ -47,6 +47,7 @@ fun ShowcaseContent(
                 widthDp = uiState.documentSizeDp,
                 heightDp = uiState.documentSizeDp,
                 allowedShaders = uiState.allowedShaders,
+                onAction = { actionId, metadata -> onIntent(ShowcaseIntent.ReceiveHostAction(actionId, metadata)) },
             )
             Text(text = "Day ${uiState.ageDays}: 記録→読込 / ${document.size} bytes")
             TextButton(onClick = { onIntent(ShowcaseIntent.DumpDocument) }) {

@@ -18,6 +18,7 @@ import xyz.gekkao.sieversiacage.core.player.dumpDocument
 import javax.inject.Inject
 
 private const val TAG = "Showcase"
+private const val WATERING_TAG = "Watering"
 private const val KEY_AGE_DAYS = "ageDays"
 
 /**
@@ -28,7 +29,7 @@ private const val KEY_AGE_DAYS = "ageDays"
 class ShowcaseViewModel
     @Inject
     constructor(
-        documents: PlantDocumentRepository,
+        private val documents: PlantDocumentRepository,
         private val album: AlbumRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -55,7 +56,14 @@ class ShowcaseViewModel
                 ShowcaseIntent.NextDay -> show(state.ageDays + 1)
                 ShowcaseIntent.PreviousDay -> if (state.ageDays > 0) show(state.ageDays - 1)
                 ShowcaseIntent.DumpDocument -> dump(state)
+                is ShowcaseIntent.ReceiveHostAction -> onHostAction(intent)
             }
+        }
+
+        // M2-1 の検証では、届いたことをログに出すだけ。記録は Sim の本実装（M2-4）で作る
+        private fun onHostAction(action: ShowcaseIntent.ReceiveHostAction) {
+            if (action.actionId != documents.waterActionId) return
+            Timber.tag(WATERING_TAG).i("in-app tap received: metadata=${action.metadata}")
         }
 
         private fun dump(state: ShowcaseUiState) {

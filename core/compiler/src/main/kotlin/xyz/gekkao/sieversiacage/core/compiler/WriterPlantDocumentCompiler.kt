@@ -14,6 +14,7 @@ import androidx.compose.remote.creation.Rc.FloatExpression.SUB
 import androidx.compose.remote.creation.Rc.Time.CONTINUOUS_SEC
 import androidx.compose.remote.creation.RemoteComposeWriter
 import androidx.compose.remote.creation.RemotePath
+import androidx.compose.remote.creation.actions.HostAction
 import androidx.compose.remote.creation.actions.ValueFloatExpressionChange
 import androidx.compose.remote.creation.modifiers.RecordingModifier
 import androidx.compose.remote.creation.profile.Profile
@@ -93,8 +94,10 @@ class WriterPlantDocumentCompiler(
             val lastTap = w.addNamedFloat("lastTap", NEVER_TAPPED)
             val now = w.floatExpression(CONTINUOUS_SEC)
             val water = ValueFloatExpressionChange(Utils.idFromNan(lastTap), Utils.idFromNan(now))
+            // ADR-0014: 跳ねる反応はドキュメントの中で返し、同じタップでホストにも知らせて記録は後追いにする
+            val notifyHost = HostAction(WATER_ACTION_ID)
 
-            w.startCanvas(RecordingModifier().fillMaxSize().background(SKY).onClick(water))
+            w.startCanvas(RecordingModifier().fillMaxSize().background(SKY).onClick(water, notifyHost))
             val width = w.addComponentWidthValue()
             val height = w.addComponentHeightValue()
             val centerX = w.floatExpression(width, 2f, DIV)

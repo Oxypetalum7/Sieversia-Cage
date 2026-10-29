@@ -13,6 +13,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/plant_widget_info" />
         </receiver>
+        <!-- ADR-0014: ウィジェットの水やりのタップを受け取る。PendingIntent からだけ届けばよいので外には公開しない -->
+        <receiver
+            android:name=".WateringReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

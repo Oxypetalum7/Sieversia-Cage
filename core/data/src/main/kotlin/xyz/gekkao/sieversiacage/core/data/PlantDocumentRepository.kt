@@ -3,6 +3,7 @@ package xyz.gekkao.sieversiacage.core.data
 import xyz.gekkao.sieversiacage.core.compiler.DocumentTarget
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SHADERS
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SIZE
+import xyz.gekkao.sieversiacage.core.compiler.WATER_ACTION_ID
 import xyz.gekkao.sieversiacage.core.compiler.WriterPlantDocumentCompiler
 import xyz.gekkao.sieversiacage.core.sim.simulate
 import javax.inject.Inject
@@ -22,6 +23,9 @@ class PlantDocumentRepository
 
         /** ドキュメントの基準サイズ（dp）。再生側はこれをプレイヤーの大きさに使う。 */
         val documentSizeDp: Int = PLANT_DOCUMENT_SIZE
+
+        /** 水やりのタップでドキュメントがホストに送るアクションの ID（ADR-0014）。 */
+        val waterActionId: Int = WATER_ACTION_ID
 
         /** アプリ内のプレイヤーに許可させるシェーダー。コンパイラが書き込むものと完全一致する。 */
         val allowedShaders: Set<String> = PLANT_DOCUMENT_SHADERS

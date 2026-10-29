@@ -28,6 +28,7 @@ fun dumpDocument(document: PlantDocument): String = RemoteDocument(document.byte
  *
  * @param allowedShaders 再生を許可するシェーダーの文字列。作成側が書き込んだものと完全一致したものだけ動かす。
  *   再生側が作成側（:core:compiler）に依存しないよう、呼び出し側から受け取る
+ * @param onAction ドキュメントがホストアクションを送ったときに呼ぶ（水やりのタップなど。ADR-0014）
  * @param onLoadFail ドキュメントを読めなかったとき（版の違う `.rc` に未知の命令があるときなど）に呼ぶ。
  *   このときは何も描かない。アルバムはここで作り直しを頼む（ADR-0011）
  */
@@ -39,6 +40,7 @@ fun PlantDocumentView(
     allowedShaders: Set<String>,
     modifier: Modifier = Modifier,
     maxAvgFps: Int = IN_APP_MAX_AVG_FPS,
+    onAction: (actionId: Int, metadata: String?) -> Unit = { _, _ -> },
     onLoadFail: (Throwable) -> Unit = {},
 ) {
     val loaded = remember(document) { runCatching { RemoteDocument(document.bytes).document } }
@@ -64,5 +66,6 @@ fun PlantDocumentView(
         // 既定では直近 10 秒の平均が 10fps に制限され、操作がないと数秒でカクつく。
         // setDocument のたびに既定値へ戻るため、init ではなく（setDocument の後に呼ばれる）update で設定する
         update = { player -> player.setMaxAvgFps(maxAvgFps) },
+        onAction = onAction,
     )
 }
