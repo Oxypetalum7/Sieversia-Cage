@@ -4,10 +4,16 @@ package xyz.gekkao.sieversiacage.core.compiler
 
 import android.annotation.SuppressLint
 import androidx.compose.remote.core.operations.Utils
+import androidx.compose.remote.core.operations.layout.managers.BoxLayout
+import androidx.compose.remote.core.operations.layout.managers.CollapsiblePriority
+import androidx.compose.remote.core.operations.layout.managers.ColumnLayout
+import androidx.compose.remote.core.operations.layout.managers.CoreText
+import androidx.compose.remote.core.operations.layout.managers.RowLayout
 import androidx.compose.remote.creation.Rc.FloatExpression.ADD
 import androidx.compose.remote.creation.Rc.FloatExpression.CLAMP
 import androidx.compose.remote.creation.Rc.FloatExpression.COS
 import androidx.compose.remote.creation.Rc.FloatExpression.DIV
+import androidx.compose.remote.creation.Rc.FloatExpression.MIN
 import androidx.compose.remote.creation.Rc.FloatExpression.MUL
 import androidx.compose.remote.creation.Rc.FloatExpression.SIN
 import androidx.compose.remote.creation.Rc.FloatExpression.SUB
@@ -71,9 +77,37 @@ private const val BOUNCE_STRETCH = 0.15f
 /** タップ時刻の初期値。t - lastTap が常に BOUNCE_SEC を超えるよう、十分に過去にしておく。 */
 private const val NEVER_TAPPED = -10_000f
 
-/** スパイク①③: 低レベル API（ADR-0009）でドキュメントを作る。③で式アニメーションとタップを足した。 */
+// M2-2: ウィジェットの骨組みの寸法（dp）と文字の大きさ（sp）。見た目は M3 で作り込む
+private const val PLANT_MIN_WIDTH_DP = 160f
+private const val PLANT_MIN_HEIGHT_DP = 160f
+private const val STATUS_WIDTH_DP = 150f
+private const val MEMO_HEIGHT_DP = 96f
+private const val PANEL_PADDING_DP = 12f
+private const val TITLE_SP = 20f
+private const val BODY_SP = 14f
+private const val FONT_WEIGHT_NORMAL = 400f
+private const val TEXT_MAX_LINES = 3
+private const val TEXT_COLOR = 0xFF3B3A36.toInt()
+private const val MEMO_BACKGROUND = 0xFFF4F1E8.toInt()
+
+/** availableLength で、しきい値の前後を 0 か 1 にはっきり分けるための係数。 */
+private const val STEP_SHARPNESS = 1000f
+
+/** 折りたたみの優先度。小さいほど先に消える。 */
+private const val PRIORITY_KEEP = 2f
+private const val PRIORITY_DROP_FIRST = 1f
+
+/**
+ * 低レベル API（ADR-0009）でドキュメントを作る。スパイク①③で植物の Canvas を、M2-2 でウィジェットの三段リフローの骨組みを足した。
+ *
+ * @param density 端末の画面密度。ウィジェットの寸法（dp）を px に直すのに使う。Canvas とレイアウトの座標は実機のピクセル
+ * @param spToPx 文字の大きさ（sp）を px に直す。端末の「フォントサイズ」の設定も反映する。
+ *   V6 は文字の大きさに式を使えないので、作るときに決める。設定が変わったら作り直す必要がある
+ */
 class WriterPlantDocumentCompiler(
-    target: DocumentTarget = DocumentTarget.IN_APP,
+    private val target: DocumentTarget = DocumentTarget.IN_APP,
+    private val density: Float = 1f,
+    private val spToPx: (Float) -> Float = { it * density },
 ) : PlantDocumentCompiler {
     private val profile: Profile =
         when (target) {
@@ -90,71 +124,211 @@ class WriterPlantDocumentCompiler(
         val w =
             RemoteComposeWriter.obtain(PLANT_DOCUMENT_SIZE, PLANT_DOCUMENT_SIZE, profile)
         w.root {
-            // 水やり: タップした瞬間の CONTINUOUS_SEC を lastTap に書き込む（式はタップ時にプレイヤーが評価する）
-            val lastTap = w.addNamedFloat("lastTap", NEVER_TAPPED)
-            val now = w.floatExpression(CONTINUOUS_SEC)
-            val water = ValueFloatExpressionChange(Utils.idFromNan(lastTap), Utils.idFromNan(now))
-            // ADR-0014: 跳ねる反応はドキュメントの中で返し、同じタップでホストにも知らせて記録は後追いにする
-            val notifyHost = HostAction(WATER_ACTION_ID)
-
-            w.startCanvas(RecordingModifier().fillMaxSize().background(SKY).onClick(water, notifyHost))
-            val width = w.addComponentWidthValue()
-            val height = w.addComponentHeightValue()
-            val centerX = w.floatExpression(width, 2f, DIV)
-            val ground = w.floatExpression(height, GROUND_RATIO, MUL)
-            val flowerY = w.floatExpression(height, FLOWER_RATIO, MUL)
-
-            drawSky(w, width, height, useShader)
-            w.rcPaint
-                .setColor(SOIL)
-                .setStyle(PAINT_FILL)
-                .commit()
-            w.drawRect(0f, ground, width, height)
-
-            val sway = w.floatExpression(CONTINUOUS_SEC, SWAY_SPEED, MUL, SIN, SWAY_DEGREES, MUL)
-            // progress = clamp((t - lastTap) / 0.6, 0, 1)、stretch = 1 + sin(progress * π) * 0.15
-            // 正時をまたいだタップは t - lastTap が負になり、跳ねずに終わる（スパイクでは許容）
-            val stretch =
-                w.floatExpression(
-                    CONTINUOUS_SEC,
-                    lastTap,
-                    SUB,
-                    BOUNCE_SEC,
-                    DIV,
-                    1f,
-                    0f,
-                    CLAMP,
-                    PI.toFloat(),
-                    MUL,
-                    SIN,
-                    BOUNCE_STRETCH,
-                    MUL,
-                    1f,
-                    ADD,
-                )
-
-            // 根元を支点に、揺らしてから縦に伸ばす
-            w.save()
-            w.rotate(sway, centerX, ground)
-            w.scale(1f, stretch, centerX, ground)
-            w.rcPaint
-                .setColor(STEM)
-                .setStyle(PAINT_STROKE)
-                .setStrokeWidth(STEM_WIDTH)
-                .commit()
-            w.drawLine(centerX, ground, centerX, flowerY)
-            w.translate(centerX, flowerY)
-            // 花の形は基準サイズ（320）の座標で書いてある。Canvas の座標は実機のピクセルなので、幅に合わせて拡大する
-            val unit = w.floatExpression(width, PLANT_DOCUMENT_SIZE.toFloat(), DIV)
-            w.scale(unit, unit)
-            drawFlowerHead(w, state.stage)
-            w.restore()
-
-            w.endCanvas()
+            when (target) {
+                DocumentTarget.IN_APP -> drawPlantCanvas(w, state, RecordingModifier().fillMaxSize())
+                DocumentTarget.WIDGET_V6, DocumentTarget.WIDGET_V7 -> widgetLayout(w, state)
+            }
         }
         return w.encodeToByteArray()
     }
+
+    /**
+     * M2-2: ウィジェットの三段リフロー（発注書: 2x2 = 鉢のクローズアップ / 4x2 = 株全体＋状態 / 4x4 = 全景＋成長メモ）。
+     * ドキュメントの中だけで組み変わり、アプリには戻らない。
+     *
+     * 植物の Canvas を全面に敷き、その上に折りたたみ可能な横並び（状態の欄）と縦並び（成長メモ）を重ねる。
+     * 折りたたみの判断は大きさの決まった部品だけで行う（weight を付けた部品は測る時点で大きさが決まらず、判断が崩れた）。
+     * 植物の最小の大きさは中身のない箱で場所取りし、場所が足りなければ優先度の低い欄が消える。
+     * Canvas は同じしきい値を式で判断し、欄が出ているときはその分を避けて植物を描く。
+     */
+    private fun widgetLayout(
+        w: RemoteComposeWriter,
+        state: PlantState,
+    ) {
+        val reserve =
+            PanelReserve(
+                plantMinWidth = dp(PLANT_MIN_WIDTH_DP),
+                statusWidth = dp(STATUS_WIDTH_DP),
+                plantMinHeight = dp(PLANT_MIN_HEIGHT_DP),
+                memoHeight = dp(MEMO_HEIGHT_DP),
+            )
+        w.box(RecordingModifier().fillMaxSize(), BoxLayout.START, BoxLayout.TOP) {
+            drawPlantCanvas(w, state, RecordingModifier().fillMaxSize(), reserve)
+
+            // 横: 植物の最小幅 + 状態の欄が入らなければ、状態の欄が消える。並びは右に寄せ、状態の欄を右端に置く
+            w.collapsibleRow(RecordingModifier().fillMaxSize(), RowLayout.END, RowLayout.TOP) {
+                spacer(w, RecordingModifier().width(reserve.plantMinWidth).height(1f))
+                val status =
+                    RecordingModifier()
+                        .width(reserve.statusWidth)
+                        .padding(dp(PANEL_PADDING_DP))
+                        .collapsiblePriority(CollapsiblePriority.HORIZONTAL, PRIORITY_DROP_FIRST)
+                w.column(status, ColumnLayout.START, ColumnLayout.TOP) {
+                    text(w, "Day ${state.ageDays}", TITLE_SP)
+                    text(w, stageLabel(state.stage), BODY_SP)
+                    // 仮の値。水やりの回数は Sim の本実装（M2-4）でつなぐ
+                    text(w, "水やり 3 回", BODY_SP)
+                }
+            }
+
+            // 縦: 植物の最小の高さ + 成長メモが入らなければ、成長メモが消える。並びは下に寄せ、成長メモを下端に置く
+            w.collapsibleColumn(RecordingModifier().fillMaxSize(), ColumnLayout.START, ColumnLayout.BOTTOM) {
+                spacer(w, RecordingModifier().width(1f).height(reserve.plantMinHeight))
+                val memo =
+                    RecordingModifier()
+                        .fillMaxWidth()
+                        .height(reserve.memoHeight)
+                        .background(MEMO_BACKGROUND)
+                        .padding(dp(PANEL_PADDING_DP))
+                        .collapsiblePriority(CollapsiblePriority.VERTICAL, PRIORITY_DROP_FIRST)
+                w.box(memo, BoxLayout.START, BoxLayout.TOP) {
+                    text(w, "成長メモ（仮）: 花が開きはじめた。明日は花びらがもう少し広がりそう。", BODY_SP)
+                }
+            }
+        }
+    }
+
+    /** 場所取りだけをする中身のない箱。折りたたみの優先度は最も高い（消えない）。 */
+    private fun spacer(
+        w: RemoteComposeWriter,
+        modifier: RecordingModifier,
+    ) {
+        w.box(
+            modifier.collapsiblePriority(CollapsiblePriority.HORIZONTAL, PRIORITY_KEEP),
+            BoxLayout.START,
+            BoxLayout.TOP,
+        ) {}
+    }
+
+    private fun text(
+        w: RemoteComposeWriter,
+        value: String,
+        sizeSp: Float,
+    ) {
+        w.textComponent(
+            RecordingModifier(),
+            w.addText(value),
+            TEXT_COLOR,
+            spToPx(sizeSp),
+            0,
+            FONT_WEIGHT_NORMAL,
+            null,
+            CoreText.TEXT_ALIGN_START,
+            CoreText.OVERFLOW_ELLIPSIS,
+            TEXT_MAX_LINES,
+        ) {}
+    }
+
+    private fun dp(value: Float): Float = value * density
+
+    /** 植物を描く Canvas。タップすると跳ねて、ホストにも水やりを知らせる。 */
+    private fun drawPlantCanvas(
+        w: RemoteComposeWriter,
+        state: PlantState,
+        modifier: RecordingModifier,
+        reserve: PanelReserve? = null,
+    ) {
+        // 水やり: タップした瞬間の CONTINUOUS_SEC を lastTap に書き込む（式はタップ時にプレイヤーが評価する）
+        val lastTap = w.addNamedFloat("lastTap", NEVER_TAPPED)
+        val now = w.floatExpression(CONTINUOUS_SEC)
+        val water = ValueFloatExpressionChange(Utils.idFromNan(lastTap), Utils.idFromNan(now))
+        // ADR-0014: 跳ねる反応はドキュメントの中で返し、同じタップでホストにも知らせて記録は後追いにする
+        val notifyHost = HostAction(WATER_ACTION_ID)
+
+        w.startCanvas(modifier.background(SKY).onClick(water, notifyHost))
+        val width = w.addComponentWidthValue()
+        val height = w.addComponentHeightValue()
+        // 植物を描く範囲。ウィジェットでは、状態の欄と成長メモが出ているときにその分を避ける
+        val plantWidth = reserve?.let { availableLength(w, width, it.plantMinWidth, it.statusWidth) } ?: width
+        val plantHeight = reserve?.let { availableLength(w, height, it.plantMinHeight, it.memoHeight) } ?: height
+        val centerX = w.floatExpression(plantWidth, 2f, DIV)
+        val ground = w.floatExpression(plantHeight, GROUND_RATIO, MUL)
+        val flowerY = w.floatExpression(plantHeight, FLOWER_RATIO, MUL)
+
+        drawSky(w, width, height, useShader)
+        w.rcPaint
+            .setColor(SOIL)
+            .setStyle(PAINT_FILL)
+            .commit()
+        w.drawRect(0f, ground, width, height)
+
+        val sway = w.floatExpression(CONTINUOUS_SEC, SWAY_SPEED, MUL, SIN, SWAY_DEGREES, MUL)
+        // progress = clamp((t - lastTap) / 0.6, 0, 1)、stretch = 1 + sin(progress * π) * 0.15
+        // 正時をまたいだタップは t - lastTap が負になり、跳ねずに終わる（スパイクでは許容）
+        val stretch =
+            w.floatExpression(
+                CONTINUOUS_SEC,
+                lastTap,
+                SUB,
+                BOUNCE_SEC,
+                DIV,
+                1f,
+                0f,
+                CLAMP,
+                PI.toFloat(),
+                MUL,
+                SIN,
+                BOUNCE_STRETCH,
+                MUL,
+                1f,
+                ADD,
+            )
+
+        // 根元を支点に、揺らしてから縦に伸ばす
+        w.save()
+        w.rotate(sway, centerX, ground)
+        w.scale(1f, stretch, centerX, ground)
+        w.rcPaint
+            .setColor(STEM)
+            .setStyle(PAINT_STROKE)
+            .setStrokeWidth(STEM_WIDTH)
+            .commit()
+        w.drawLine(centerX, ground, centerX, flowerY)
+        w.translate(centerX, flowerY)
+        // 花の形は基準サイズ（320）の座標で書いてある。Canvas の座標は実機のピクセルなので、描く範囲の短い辺に合わせて拡大する
+        val unit = w.floatExpression(plantWidth, plantHeight, MIN, PLANT_DOCUMENT_SIZE.toFloat(), DIV)
+        w.scale(unit, unit)
+        drawFlowerHead(w, state.stage)
+        w.restore()
+
+        w.endCanvas()
+    }
 }
+
+/**
+ * ウィジェットで、植物のために残しておく大きさと、その横・下に出す欄の大きさ（px）。
+ * 折りたたみ可能なレイアウトと Canvas の式で、同じしきい値を使う。
+ */
+private class PanelReserve(
+    val plantMinWidth: Float,
+    val statusWidth: Float,
+    val plantMinHeight: Float,
+    val memoHeight: Float,
+)
+
+/**
+ * 欄が出ているときは total - panel、出ていないときは total。
+ * 欄が出る条件（total >= plantMin + panel）を、shown = clamp((total - plantMin - panel) * 大きな数 + 1, 0, 1) で 0 か 1 にする。
+ * CLAMP は「値, 最大, 最小」の順に積む。
+ */
+private fun availableLength(
+    w: RemoteComposeWriter,
+    total: Float,
+    plantMin: Float,
+    panel: Float,
+): Float {
+    val shown = w.floatExpression(total, plantMin + panel, SUB, STEP_SHARPNESS, MUL, 1f, ADD, 1f, 0f, CLAMP)
+    return w.floatExpression(total, shown, panel, MUL, SUB)
+}
+
+private fun stageLabel(stage: GrowthStage): String =
+    when (stage) {
+        GrowthStage.SPROUT -> "芽生え"
+        GrowthStage.LEAF -> "葉がひらいた"
+        GrowthStage.BUD -> "つぼみ"
+        GrowthStage.BLOOM -> "開花"
+        GrowthStage.SEED_HEAD -> "綿毛"
+    }
 
 /**
  * スパイク⑤: 空を AGSL で描く。上が青く下が明るいグラデーションに、斜めの細い光の帯が右へ流れる。

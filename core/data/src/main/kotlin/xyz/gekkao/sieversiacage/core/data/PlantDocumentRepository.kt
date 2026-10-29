@@ -1,5 +1,8 @@
 package xyz.gekkao.sieversiacage.core.data
 
+import android.content.Context
+import android.util.TypedValue
+import dagger.hilt.android.qualifiers.ApplicationContext
 import xyz.gekkao.sieversiacage.core.compiler.DocumentTarget
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SHADERS
 import xyz.gekkao.sieversiacage.core.compiler.PLANT_DOCUMENT_SIZE
@@ -15,11 +18,10 @@ import javax.inject.Singleton
 @Singleton
 class PlantDocumentRepository
     @Inject
-    constructor() {
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) {
         private val inAppCompiler = WriterPlantDocumentCompiler(DocumentTarget.IN_APP)
-
-        // ADR-0012: ウィジェットは WIDGETS_V6 で書く
-        private val widgetCompiler = WriterPlantDocumentCompiler(DocumentTarget.WIDGET_V6)
 
         /** ドキュメントの基準サイズ（dp）。再生側はこれをプレイヤーの大きさに使う。 */
         val documentSizeDp: Int = PLANT_DOCUMENT_SIZE
@@ -34,5 +36,14 @@ class PlantDocumentRepository
         fun inAppDocument(ageDays: Int): ByteArray = inAppCompiler.compile(simulate(ageDays))
 
         /** ホーム画面のウィジェットに載せるドキュメント。 */
-        fun widgetDocument(ageDays: Int): ByteArray = widgetCompiler.compile(simulate(ageDays))
+        fun widgetDocument(ageDays: Int): ByteArray {
+            // ADR-0012: ウィジェットは WIDGETS_V6 で書く。寸法と文字の大きさは、そのときの画面密度とフォントサイズの設定で px に直す（M2-2）
+            val metrics = context.resources.displayMetrics
+            val spToPx = { sp: Float -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics) }
+            return WriterPlantDocumentCompiler(
+                DocumentTarget.WIDGET_V6,
+                metrics.density,
+                spToPx,
+            ).compile(simulate(ageDays))
+        }
     }
