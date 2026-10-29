@@ -21,6 +21,8 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.timber)
+    // 水やりの通知（NotificationCompat）
+    implementation(libs.androidx.core.ktx)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)

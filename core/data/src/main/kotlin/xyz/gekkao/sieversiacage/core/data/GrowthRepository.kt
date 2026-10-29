@@ -46,6 +46,9 @@ class GrowthRepository
         /** 今日は植えてから何日目か。 */
         suspend fun todayAgeDays(): Int = ChronoUnit.DAYS.between(plantedOn(), today()).toInt()
 
+        /** これまでに一度でも水をやったか（通知の許可を尋ねるきっかけ、ADR-0021）。 */
+        suspend fun hasEverWatered(): Boolean = dao.anyWatering()
+
         /** 今日、水をやったか（表示用。株に効くのは翌日から、ADR-0020 / ADR-0021）。 */
         suspend fun wateredToday(): Boolean {
             val today = today()

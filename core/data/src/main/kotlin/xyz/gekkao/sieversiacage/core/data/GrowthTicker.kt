@@ -42,4 +42,22 @@ class GrowthTicker
                 Timber.tag(TAG).i("caught up: recorded $recorded day(s), today is day $today")
                 recorded
             }
+
+        /** 抜けている日を進めてから、今日の株をアルバムのファイルから読む（ショーケース）。 */
+        suspend fun today(): TodayPlant {
+            catchUp()
+            val ageDays = growth.todayAgeDays()
+            return TodayPlant(ageDays, album.document(ageDays))
+        }
     }
+
+/**
+ * 今日の株。
+ *
+ * @property ageDays 今日は植えてから何日目か
+ * @property document アルバムに記録した今日のドキュメント。読めなければ null
+ */
+class TodayPlant(
+    val ageDays: Int,
+    val document: ByteArray?,
+)

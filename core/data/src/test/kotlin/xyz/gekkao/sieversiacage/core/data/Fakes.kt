@@ -57,6 +57,8 @@ internal class FakeGrowthDao : GrowthDao {
         logs.putIfAbsent(log.date, log.taps)
     }
 
+    override suspend fun anyWatering(): Boolean = logs.values.any { it > 0 }
+
     override suspend fun incrementWatering(date: String) {
         logs.computeIfPresent(date) { _, taps -> taps + 1 }
     }

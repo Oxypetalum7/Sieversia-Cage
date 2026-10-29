@@ -18,6 +18,9 @@ interface GrowthDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertWateringIfAbsent(log: WateringLogEntity)
 
+    @Query("SELECT EXISTS(SELECT 1 FROM watering_log WHERE taps > 0)")
+    suspend fun anyWatering(): Boolean
+
     @Query("UPDATE watering_log SET taps = taps + 1 WHERE date = :date")
     suspend fun incrementWatering(date: String)
 

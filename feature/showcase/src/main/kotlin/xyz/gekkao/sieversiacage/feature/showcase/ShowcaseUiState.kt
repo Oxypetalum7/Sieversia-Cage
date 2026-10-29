@@ -11,6 +11,7 @@ import xyz.gekkao.sieversiacage.core.player.PlantDocument
  * @property document 表示するドキュメント。今日はアルバムのファイルから読み、それ以外の日はプレビューを描く
  * @property documentSizeDp ドキュメントの基準サイズ（dp）
  * @property allowedShaders プレイヤーに許可させるシェーダー
+ * @property showReminderPrompt 「土が乾いたら知らせますか？」の案内を出すか（ADR-0021）
  */
 @Immutable
 data class ShowcaseUiState(
@@ -19,6 +20,7 @@ data class ShowcaseUiState(
     val document: PlantDocument?,
     val documentSizeDp: Int,
     val allowedShaders: Set<String>,
+    val showReminderPrompt: Boolean = false,
 ) {
     /** 今日以外の日は「毎日水をやった」前提のプレビュー（ADR-0021）。アルバムには書かない。 */
     val isPreview: Boolean get() = todayAgeDays != null && ageDays != todayAgeDays
@@ -35,9 +37,25 @@ sealed interface ShowcaseIntent {
     /** 表示中のドキュメントの中身を logcat に出す（デバッグ用）。 */
     data object DumpDocument : ShowcaseIntent
 
+    /** 案内で「知らせる」を選んだ。 */
+    data object AcceptReminder : ShowcaseIntent
+
+    /** 案内で「今はいい」を選んだ。 */
+    data object DeclineReminder : ShowcaseIntent
+
+    /** 通知の許可を求めた結果。 */
+    data class ReportReminderPermission(
+        val granted: Boolean,
+    ) : ShowcaseIntent
+
     /** ドキュメントがホストアクションを送った（水やりのタップなど。ADR-0014）。 */
     data class ReceiveHostAction(
         val actionId: Int,
         val metadata: String?,
     ) : ShowcaseIntent
+}
+
+sealed interface ShowcaseEffect {
+    /** 通知の許可を求める（画面が許可のダイアログを開く。ADR-0021）。 */
+    data object RequestNotificationPermission : ShowcaseEffect
 }

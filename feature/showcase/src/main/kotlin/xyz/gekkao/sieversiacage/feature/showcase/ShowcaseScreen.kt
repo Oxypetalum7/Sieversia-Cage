@@ -1,11 +1,16 @@
 package xyz.gekkao.sieversiacage.feature.showcase
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +27,23 @@ fun ShowcaseScreen(
     viewModel: ShowcaseViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.onIntent(ShowcaseIntent.ReportReminderPermission(granted))
+        }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                ShowcaseEffect.RequestNotificationPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        viewModel.onIntent(ShowcaseIntent.ReportReminderPermission(granted = true))
+                    }
+                }
+            }
+        }
+    }
     ShowcaseContent(
         uiState = uiState,
         onIntent = viewModel::onIntent,
@@ -66,6 +88,14 @@ fun ShowcaseContent(
         }
         if (uiState.isPreview) {
             TextButton(onClick = { onIntent(ShowcaseIntent.BackToToday) }) { Text("今日に戻る") }
+        }
+        if (uiState.showReminderPrompt) {
+            // ADR-0021: 初めて水をやったあとに、何のための通知かが伝わる形で尋ねる（見た目は M3 で作り込む）
+            Text(text = "土が乾いたら、夕方にお知らせしますか？")
+            Row {
+                TextButton(onClick = { onIntent(ShowcaseIntent.AcceptReminder) }) { Text("知らせる") }
+                TextButton(onClick = { onIntent(ShowcaseIntent.DeclineReminder) }) { Text("今はいい") }
+            }
         }
     }
 }
