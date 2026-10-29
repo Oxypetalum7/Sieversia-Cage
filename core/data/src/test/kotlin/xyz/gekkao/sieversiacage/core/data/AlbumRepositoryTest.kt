@@ -161,32 +161,6 @@ private class FakeGenerator(
         "v$compilerVersion:${state.ageDays}:${state.stage}".encodeToByteArray()
 }
 
-private class FakeAlbumEntryDao : AlbumEntryDao {
-    private val rows = MutableStateFlow(sortedMapOf<Int, AlbumEntryEntity>())
-
-    override suspend fun upsert(entry: AlbumEntryEntity) {
-        rows.value =
-            sortedMapOf<Int, AlbumEntryEntity>().apply {
-                putAll(rows.value)
-                put(entry.ageDays, entry)
-            }
-    }
-
-    override suspend fun find(ageDays: Int): AlbumEntryEntity? = rows.value[ageDays]
-
-    override suspend fun all(): List<AlbumEntryEntity> = rows.value.values.toList()
-
-    override fun observeDays(): Flow<List<Int>> = rows.map { it.keys.toList() }
-
-    override suspend fun stale(
-        compilerVersion: Int,
-        remoteComposeVersion: String,
-    ): List<AlbumEntryEntity> =
-        rows.value.values.filter {
-            it.compilerVersion < compilerVersion || it.remoteComposeVersion != remoteComposeVersion
-        }
-}
-
 private fun PlantState.toEntityWith(
     stage: GrowthStage,
     compilerVersion: Int,

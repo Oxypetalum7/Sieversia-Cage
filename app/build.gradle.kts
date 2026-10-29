@@ -35,4 +35,5 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.timber)
+    implementation(libs.androidx.hilt.work)
 }

@@ -16,6 +16,13 @@ interface AlbumEntryDao {
     @Query("SELECT * FROM album_entry ORDER BY age_days")
     suspend fun all(): List<AlbumEntryEntity>
 
+    /** 記録した最後の日。まだ何も記録していなければ null。 */
+    @Query("SELECT MAX(age_days) FROM album_entry")
+    suspend fun lastAgeDays(): Int?
+
+    @Query("DELETE FROM album_entry")
+    suspend fun deleteAll()
+
     /** 記録のある日（経過日数の昇順）。記録や作り直しのたびに流れ直す。 */
     @Query("SELECT age_days FROM album_entry ORDER BY age_days")
     fun observeDays(): Flow<List<Int>>

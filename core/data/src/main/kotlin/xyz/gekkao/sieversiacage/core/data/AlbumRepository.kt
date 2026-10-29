@@ -10,9 +10,7 @@ import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryDao
 import xyz.gekkao.sieversiacage.core.data.db.AlbumEntryEntity
 import xyz.gekkao.sieversiacage.core.sim.GrowthStage
 import xyz.gekkao.sieversiacage.core.sim.PlantState
-import xyz.gekkao.sieversiacage.core.sim.simulateWateredDaily
 import java.time.Clock
-import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,13 +35,15 @@ class AlbumRepository
         /** 1 日分を記録し、作ったドキュメントを返す。同じ日がすでにあれば上書きする。 */
         suspend fun record(state: PlantState): ByteArray = mutex.withLock { write(state) }
 
-        /**
-         * 「今日まで毎日水をやった」前提で、植えてから [ageDays] 日目の株を記録する（ショーケースのプレビュー用）。
-         * 毎日の成長 tick（M2-5）が水やりの記録から Sim を回すようになるまでの入口。
-         */
-        suspend fun record(ageDays: Int): ByteArray {
-            val today = LocalDate.now(clock)
-            return record(simulateWateredDaily(today.minusDays(ageDays.toLong()), ageDays))
+        /** 記録した最後の日（植えてからの経過日数）。まだ何も記録していなければ null。 */
+        suspend fun lastRecordedDay(): Int? = dao.lastAgeDays()
+
+        /** すべての日を消す。植えた日を初めて決めたとき、それより前の記録（プレビューの日など）を消すのに使う（ADR-0021）。 */
+        suspend fun clear() {
+            mutex.withLock {
+                dao.deleteAll()
+                files.deleteAll()
+            }
         }
 
         /** 記録のある日（経過日数の昇順）。記録が増えると流れ直す。 */

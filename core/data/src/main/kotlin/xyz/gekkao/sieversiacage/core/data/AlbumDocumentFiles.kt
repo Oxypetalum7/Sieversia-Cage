@@ -33,6 +33,8 @@ class AlbumDocumentFiles(
 
     suspend fun delete(ageDays: Int): Unit = withContext(Dispatchers.IO) { fileOf(ageDays).delete() }
 
+    suspend fun deleteAll(): Unit = withContext(Dispatchers.IO) { dir.listFiles().orEmpty().forEach { it.delete() } }
+
     /** `.rc` が置いてある日。DB に記録のない日（スパイクの名残など）も含む。 */
     suspend fun savedDays(): Set<Int> =
         withContext(Dispatchers.IO) {

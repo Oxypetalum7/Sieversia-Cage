@@ -6,23 +6,31 @@ import xyz.gekkao.sieversiacage.core.player.PlantDocument
 /**
  * ショーケースの画面の状態。
  *
- * @property ageDays 表示する経過日数
- * @property document アルバムに記録してから読み直したドキュメント。読み終わるまでは前の日のものか null
+ * @property ageDays 表示している日（植えてからの経過日数）
+ * @property todayAgeDays 今日は植えてから何日目か。読み込むまでは null
+ * @property document 表示するドキュメント。今日はアルバムのファイルから読み、それ以外の日はプレビューを描く
  * @property documentSizeDp ドキュメントの基準サイズ（dp）
  * @property allowedShaders プレイヤーに許可させるシェーダー
  */
 @Immutable
 data class ShowcaseUiState(
     val ageDays: Int,
+    val todayAgeDays: Int?,
     val document: PlantDocument?,
     val documentSizeDp: Int,
     val allowedShaders: Set<String>,
-)
+) {
+    /** 今日以外の日は「毎日水をやった」前提のプレビュー（ADR-0021）。アルバムには書かない。 */
+    val isPreview: Boolean get() = todayAgeDays != null && ageDays != todayAgeDays
+}
 
 sealed interface ShowcaseIntent {
     data object NextDay : ShowcaseIntent
 
     data object PreviousDay : ShowcaseIntent
+
+    /** プレビューをやめて今日の株に戻る。 */
+    data object BackToToday : ShowcaseIntent
 
     /** 表示中のドキュメントの中身を logcat に出す（デバッグ用）。 */
     data object DumpDocument : ShowcaseIntent

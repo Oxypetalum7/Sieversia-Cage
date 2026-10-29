@@ -31,11 +31,26 @@ class GrowthRepository
         private val mutex = Mutex()
 
         /** 植えた日。まだ植えていなければ、今日植えたことにする。 */
-        suspend fun plantedOn(): LocalDate =
+        suspend fun plantedOn(): LocalDate = ensurePlanted().plantedOn
+
+        /** まだ植えていなければ今日植え、植えた日と、今回初めて植えたかを返す。 */
+        suspend fun ensurePlanted(): Planting =
             mutex.withLock {
-                dao.insertPlantIfAbsent(PlantEntity(THE_PLANT_ID, today().toString()))
-                LocalDate.parse(checkNotNull(dao.plant()).plantedOn)
+                val existing = dao.plant()
+                if (existing != null) return@withLock Planting(LocalDate.parse(existing.plantedOn), isNew = false)
+                val today = today()
+                dao.insertPlantIfAbsent(PlantEntity(THE_PLANT_ID, today.toString()))
+                Planting(today, isNew = true)
             }
+
+        /** 今日は植えてから何日目か。 */
+        suspend fun todayAgeDays(): Int = ChronoUnit.DAYS.between(plantedOn(), today()).toInt()
+
+        /** 今日、水をやったか（表示用。株に効くのは翌日から、ADR-0020 / ADR-0021）。 */
+        suspend fun wateredToday(): Boolean {
+            val today = today()
+            return dao.wateringBetween(today.toString(), today.plusDays(1).toString()).any { it.taps > 0 }
+        }
 
         /** 今日の水やりを 1 回記録する（ウィジェットとアプリ内のタップ）。 */
         suspend fun recordWatering() {
@@ -63,3 +78,9 @@ class GrowthRepository
 
         private fun today(): LocalDate = LocalDate.now(clock)
     }
+
+/** 植えた日と、今回初めて植えたか。 */
+data class Planting(
+    val plantedOn: LocalDate,
+    val isNew: Boolean,
+)

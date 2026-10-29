@@ -49,7 +49,13 @@ fun ShowcaseContent(
                 allowedShaders = uiState.allowedShaders,
                 onAction = { actionId, metadata -> onIntent(ShowcaseIntent.ReceiveHostAction(actionId, metadata)) },
             )
-            Text(text = "Day ${uiState.ageDays}: 記録→読込 / ${document.size} bytes")
+            val label =
+                if (uiState.isPreview) {
+                    "Day ${uiState.ageDays} のプレビュー（毎日水やり）"
+                } else {
+                    "Day ${uiState.ageDays}（今日）: アルバムから読込"
+                }
+            Text(text = "$label / ${document.size} bytes")
             TextButton(onClick = { onIntent(ShowcaseIntent.DumpDocument) }) {
                 Text("中身を logcat にダンプ")
             }
@@ -58,6 +64,9 @@ fun ShowcaseContent(
             TextButton(onClick = { onIntent(ShowcaseIntent.PreviousDay) }) { Text("前の日") }
             TextButton(onClick = { onIntent(ShowcaseIntent.NextDay) }) { Text("次の日") }
         }
+        if (uiState.isPreview) {
+            TextButton(onClick = { onIntent(ShowcaseIntent.BackToToday) }) { Text("今日に戻る") }
+        }
     }
 }
 
@@ -65,7 +74,14 @@ fun ShowcaseContent(
 @Composable
 private fun ShowcaseContentPreview() {
     ShowcaseContent(
-        uiState = ShowcaseUiState(ageDays = 3, document = null, documentSizeDp = 320, allowedShaders = emptySet()),
+        uiState =
+            ShowcaseUiState(
+                ageDays = 5,
+                todayAgeDays = 3,
+                document = null,
+                documentSizeDp = 320,
+                allowedShaders = emptySet(),
+            ),
         onIntent = {},
     )
 }

@@ -16,6 +16,12 @@ dependencies {
     implementation(project(":core:compiler"))
     implementation(project(":core:sim"))
 
+    // ADR-0021: 毎日の成長 tick（WorkManager）
+    api(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+    implementation(libs.timber)
+
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.kotlinx.coroutines.test)

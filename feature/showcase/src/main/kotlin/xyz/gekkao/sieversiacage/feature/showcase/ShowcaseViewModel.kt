@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import xyz.gekkao.sieversiacage.core.data.AlbumRepository
 import xyz.gekkao.sieversiacage.core.data.GrowthRepository
+import xyz.gekkao.sieversiacage.core.data.GrowthTicker
 import xyz.gekkao.sieversiacage.core.data.PlantDocumentRepository
 import xyz.gekkao.sieversiacage.core.player.PlantDocument
 import xyz.gekkao.sieversiacage.core.player.dumpDocument
@@ -23,8 +24,8 @@ private const val WATERING_TAG = "Watering"
 private const val KEY_AGE_DAYS = "ageDays"
 
 /**
- * 選んだ日の株をアルバムに記録 → 読み直して表示する（スパイク①④の流れ）。
- * 表示するのは常に「ファイルから読み直したバイト列」。
+ * 今日の本物の株を見せる（ADR-0021）。今日の分はアルバムのファイルから読む（スパイク④の「読み直したバイト列を再生する」）。
+ * 「前の日 / 次の日」は、毎日水をやった前提の先の姿のプレビューで、アルバムには書かない。
  */
 @HiltViewModel
 class ShowcaseViewModel
@@ -33,12 +34,14 @@ class ShowcaseViewModel
         private val documents: PlantDocumentRepository,
         private val album: AlbumRepository,
         private val growth: GrowthRepository,
+        private val ticker: GrowthTicker,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState =
             MutableStateFlow(
                 ShowcaseUiState(
                     ageDays = savedStateHandle[KEY_AGE_DAYS] ?: 0,
+                    todayAgeDays = null,
                     document = null,
                     documentSizeDp = documents.documentSizeDp,
                     allowedShaders = documents.allowedShaders,
@@ -49,14 +52,22 @@ class ShowcaseViewModel
         private var loadJob: Job? = null
 
         init {
-            show(_uiState.value.ageDays)
+            viewModelScope.launch {
+                // 今日の分がまだアルバムになければ、ここで進める（tick より先に開いたとき）
+                ticker.catchUp()
+                val today = growth.todayAgeDays()
+                _uiState.update { it.copy(todayAgeDays = today) }
+                show(savedStateHandle[KEY_AGE_DAYS] ?: today)
+            }
         }
 
         fun onIntent(intent: ShowcaseIntent) {
             val state = _uiState.value
+            val today = state.todayAgeDays ?: return
             when (intent) {
                 ShowcaseIntent.NextDay -> show(state.ageDays + 1)
                 ShowcaseIntent.PreviousDay -> if (state.ageDays > 0) show(state.ageDays - 1)
+                ShowcaseIntent.BackToToday -> show(today)
                 ShowcaseIntent.DumpDocument -> dump(state)
                 is ShowcaseIntent.ReceiveHostAction -> onHostAction(intent)
             }
@@ -82,12 +93,13 @@ class ShowcaseViewModel
             loadJob?.cancel()
             loadJob =
                 viewModelScope.launch {
-                    val generated = album.record(ageDays)
-                    val reloaded = album.document(ageDays)
-                    Timber
-                        .tag(TAG)
-                        .i("recorded day-$ageDays ${generated.size}B, roundTrip=${reloaded?.contentEquals(generated)}")
-                    _uiState.update { it.copy(document = reloaded?.let(::PlantDocument)) }
+                    val bytes =
+                        if (ageDays == _uiState.value.todayAgeDays) {
+                            album.document(ageDays)
+                        } else {
+                            documents.inAppPreviewDocument(growth.plantedOn(), ageDays)
+                        }
+                    _uiState.update { it.copy(document = bytes?.let(::PlantDocument)) }
                 }
         }
     }

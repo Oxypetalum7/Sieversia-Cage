@@ -36,8 +36,14 @@ class PlantDocumentRepository
         /** アプリ内のプレイヤーに許可させるシェーダー。コンパイラが書き込むものと完全一致する。 */
         val allowedShaders: Set<String> = PLANT_DOCUMENT_SHADERS
 
-        /** アプリ内（ショーケース・アルバム）で再生するドキュメント。 */
-        fun inAppDocument(ageDays: Int): ByteArray = inAppCompiler.compile(preview(ageDays))
+        /**
+         * ショーケースの「先の姿のプレビュー」（ADR-0021）。植えた日 [plantedOn] から [ageDays] 日、毎日水をやった前提で描く。
+         * アルバムには書かない。
+         */
+        fun inAppPreviewDocument(
+            plantedOn: LocalDate,
+            ageDays: Int,
+        ): ByteArray = inAppCompiler.compile(simulateWateredDaily(plantedOn, ageDays))
 
         /** ホーム画面のウィジェットに載せるドキュメント。 */
         fun widgetDocument(ageDays: Int): ByteArray {

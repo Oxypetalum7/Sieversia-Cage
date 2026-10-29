@@ -77,27 +77,3 @@ class GrowthRepositoryTest {
                 )
         }
 }
-
-private class FakeGrowthDao : GrowthDao {
-    var plantRow: PlantEntity? = null
-    val logs = sortedMapOf<String, Int>()
-
-    override suspend fun plant(): PlantEntity? = plantRow
-
-    override suspend fun insertPlantIfAbsent(plant: PlantEntity) {
-        if (plantRow == null) plantRow = plant
-    }
-
-    override suspend fun insertWateringIfAbsent(log: WateringLogEntity) {
-        logs.putIfAbsent(log.date, log.taps)
-    }
-
-    override suspend fun incrementWatering(date: String) {
-        logs.computeIfPresent(date) { _, taps -> taps + 1 }
-    }
-
-    override suspend fun wateringBetween(
-        from: String,
-        until: String,
-    ): List<WateringLogEntity> = logs.subMap(from, until).map { (date, taps) -> WateringLogEntity(date, taps) }
-}
