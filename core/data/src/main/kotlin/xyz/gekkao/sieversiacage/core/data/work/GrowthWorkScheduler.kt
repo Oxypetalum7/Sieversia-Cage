@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val DAILY_TICK_WORK = "daily-growth-tick"
-private const val REMINDER_WORK = "dry-soil-reminder"
+internal const val DAILY_TICK_WORK = "daily-growth-tick"
+internal const val REMINDER_WORK = "dry-soil-reminder"
 
 /** 毎日の成長 tick を動かす時刻（端末の現地時刻）。日付が変わってすぐ（ADR-0021）。 */
 private val DAILY_TICK_TIME: LocalTime = LocalTime.of(0, 5)

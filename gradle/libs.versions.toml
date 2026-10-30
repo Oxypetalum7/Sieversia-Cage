@@ -44,6 +44,8 @@ androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltAn
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltAndroidx" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+# M2-6: 毎日の流れを通して確かめる端末のテストで、Worker を直接動かす
+androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 
 room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
 room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
