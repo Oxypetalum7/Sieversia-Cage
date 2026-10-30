@@ -59,14 +59,16 @@ class ReminderNotifier
             }
             if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
             createChannel()
-            val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            // 開く画面が見つからないとき（ランチャーのない APK など）は、押しても何もしない通知にする
             val contentIntent =
-                PendingIntent.getActivity(
-                    context,
-                    0,
-                    launch,
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-                )
+                context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
+                    PendingIntent.getActivity(
+                        context,
+                        0,
+                        launch,
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    )
+                }
             val notification =
                 NotificationCompat
                     .Builder(context, CHANNEL_ID)
